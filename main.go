@@ -1,12 +1,13 @@
 package main
 
 import (
-    "github.com/zzz404/MoneyGo/internal/web"
-    "log"
-    "net/http"
+	"log"
+	"net/http"
+
+	"github.com/zzz404/MoneyGo/internal/web"
 )
 
-func main() {
+func main1() {
 	http.HandleFunc("/", web.PersonsView)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
