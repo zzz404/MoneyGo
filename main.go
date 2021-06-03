@@ -1,13 +1,22 @@
 package main
 
 import (
-	"log"
-	"net/http"
+	"fmt"
+	"os"
+	"os/signal"
 
 	"github.com/zzz404/MoneyGo/internal/web"
 )
 
-func main1() {
-	http.HandleFunc("/", web.PersonsView)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+func main() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for range c {
+			fmt.Println("aaa")
+			os.Exit(0)
+		}
+	}()
+
+	web.Start()
 }
