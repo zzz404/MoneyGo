@@ -9,19 +9,29 @@ import (
 	"github.com/zzz404/MoneyGo/internal/db"
 )
 
-func PersonsView(w http.ResponseWriter, r *http.Request) {
+func memberList(w http.ResponseWriter, r *http.Request) {
 	members, err := db.QueryMembers()
 	if err != nil {
 		fmt.Fprintf(w, "Error: %s", err.Error())
-	} else {
-		t, _ := template.ParseFiles("Webapp/PersonsView.html")
-		t.Execute(w, map[string]interface{}{
-			"persons": members,
-		})
+		return
 	}
+	t, err := template.ParseFiles("Webapp/memberList.html")
+	if err != nil {
+		fmt.Fprintf(w, "Error: %s", err.Error())
+		return
+	}
+	t.Execute(w, map[string]interface{}{
+		"members": members,
+	})
+
+}
+
+func depositList(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "zzz")
 }
 
 func Start() {
-	http.HandleFunc("/", PersonsView)
+	http.HandleFunc("/", memberList)
+	http.HandleFunc("/member/", depositList)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

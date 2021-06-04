@@ -1,0 +1,5 @@
+<html>
+  <body>
+    {{range $member := .members}}<div><a href="/member/{{$member.Id}}">{{$member.Name}}</a></div>{{end}}
+  </body>
+</html>
