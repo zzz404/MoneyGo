@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/zzz404/MoneyGo/internal/db"
 	"github.com/zzz404/MoneyGo/internal/web"
 )
 
@@ -13,7 +14,8 @@ func main() {
 	signal.Notify(c, os.Interrupt)
 	go func() {
 		for range c {
-			fmt.Println("aaa")
+			fmt.Println("zzz")
+			db.DB.Close()
 			os.Exit(0)
 		}
 	}()

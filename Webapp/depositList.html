@@ -1,0 +1,15 @@
+<html>
+  <body>
+    <a href="/">所有人</a>
+    <hr />
+    <a href="/depositAdd?memberId={{.memberId}}">新增</a>
+    <hr />
+    所有存單:
+    <table>
+          {{range $member := .members}}
+          <div><a href="/depositList?memberId={{$member.Id}}">{{$member.Name}}</a></div>
+          {{end}}
+
+    </table>
+  </body>
+</html>
