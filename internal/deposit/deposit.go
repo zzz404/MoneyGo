@@ -2,34 +2,57 @@ package deposit
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 
 	"github.com/zzz404/MoneyGo/internal/db"
 )
 
-type CoinType string
+type CoinType struct {
+	Code string
+	Name string
+}
 
-const (
-	RMB CoinType = "RMB" // 人民幣
-	TWD CoinType = "TWD" // 台幣
-	USD CoinType = "USD" // 美金
-)
+var RMB CoinType = CoinType{Code: "RMB", Name: "人民幣"}
+var TWD CoinType = CoinType{Code: "TWD", Name: "台幣"}
+var USD CoinType = CoinType{Code: "USD", Name: "美金"}
 
-type DepositType int8
+func GetCoinTypeByCode(code string) (*CoinType, error) {
+	switch code {
+	case RMB.Code:
+		return &RMB, nil
+	case TWD.Code:
+		return &TWD, nil
+	case USD.Code:
+		return &USD, nil
+	}
+	return nil, fmt.Errorf("不認識的 CoinType %s", code)
+}
 
-const (
-	DemandDeposit DepositType = 1 // 活存
-	TimeDeposit   DepositType = 2 // 定存
-)
+type DepositType struct {
+	Code int
+	Name string
+}
+
+var DemandDeposit DepositType = DepositType{Code: 1, Name: "活存"}
+var TimeDeposit DepositType = DepositType{Code: 2, Name: "定存"}
+
+func GetDepositTypeByCode(code int) (*DepositType, error) {
+	switch code {
+	case DemandDeposit.Code:
+		return &DemandDeposit, nil
+	case TimeDeposit.Code:
+		return &TimeDeposit, nil
+	}
+	return nil, fmt.Errorf("不認識的 DepositType %d", code)
+}
 
 type Deposit struct {
 	Id       int
-	MemberId int8
-	BankId   int8
-	Type     DepositType
+	MemberId int
+	BankId   int
+	Type     *DepositType
 	Amount   float32
-	CoinType CoinType
+	CoinType *CoinType
 }
 
 type Dao struct {
@@ -39,11 +62,23 @@ type Dao struct {
 var columns = []string{"id", "memberId", "bankId", "type", "amount", "coinType"}
 
 func (d *Deposit) load(rows *sql.Rows) error {
-	return rows.Scan(&d.Id, &d.MemberId, &d.BankId, &d.Type, &d.Amount, &d.CoinType)
+	var coinTypeCode string
+	var depositTypeCode int
+
+	err := rows.Scan(&d.Id, &d.MemberId, &d.BankId, &depositTypeCode, &d.Amount, &coinTypeCode)
+	if err != nil {
+		return err
+	}
+	d.Type, err = GetDepositTypeByCode(depositTypeCode)
+	if err != nil {
+		return err
+	}
+	d.CoinType, err = GetCoinTypeByCode(coinTypeCode)
+	return err
 }
 
-func (d *Deposit) toValues() []interface{} {
-	return []interface{}{d.Id, d.MemberId, d.BankId, d.Type, d.Amount, d.CoinType}
+func (d *Deposit) toTableValues() []interface{} {
+	return []interface{}{d.Id, d.MemberId, d.BankId, d.Type.Code, d.Amount, d.CoinType.Code}
 }
 
 func QueryDeposits(memberId int) ([]*Deposit, error) {
@@ -80,7 +115,7 @@ func GetDeposit(id int) (*Deposit, error) {
 		if deposit == nil {
 			deposit = &Deposit{}
 		} else {
-			return nil, errors.New(fmt.Sprintf("Deposit id %d 不只一個!?", id))
+			return nil, fmt.Errorf("Deposit id %d 不只一個!?", id)
 		}
 		err = deposit.load(rows)
 		if err == nil {
@@ -98,27 +133,39 @@ func AddDeposit(deposit *Deposit) error {
 	sql := fmt.Sprintf("INSERT INTO Deposit (%s) VALUES (%s)",
 		db.ToColumnsString(columns[1:]), params)
 	pstmt, err := db.DB.Prepare(sql)
+	if err != nil {
+		return err
+	}
 	defer pstmt.Close()
 
-	_, err = pstmt.Exec(deposit.toValues()[1:]...)
+	_, err = pstmt.Exec(deposit.toTableValues()[1:]...)
 	return err
 }
 
 func UpdateDeposit(deposit *Deposit) error {
 	sql := fmt.Sprintf("UPDATE Deposit SET %s WHERE id=?",
 		db.ToSettersString(columns[1:]))
+
 	pstmt, err := db.DB.Prepare(sql)
+	if err != nil {
+		return nil
+	}
 	defer pstmt.Close()
 
-	values := deposit.toValues()[1:]
+	values := deposit.toTableValues()[1:]
 	values = append(values, deposit.Id)
+
 	_, err = pstmt.Exec(values...)
 	return err
 }
 
 func DeleteDeposit(id int) error {
 	sql := "DELETE FROM Deposit WHERE id=?"
+
 	pstmt, err := db.DB.Prepare(sql)
+	if err != nil {
+		return nil
+	}
 	defer pstmt.Close()
 
 	_, err = pstmt.Exec(id)

@@ -2,14 +2,23 @@
   <body>
     <a href="/">所有人</a>
     <hr />
-    <a href="/depositAdd?memberId={{.memberId}}">新增</a>
+    <a target="_new" href="/depositEdit?memberId={{.memberId}}">新增</a>
     <hr />
     所有存單:
     <table>
-          {{range $member := .members}}
-          <div><a href="/depositList?memberId={{$member.Id}}">{{$member.Name}}</a></div>
-          {{end}}
+        Id int
+        MemberId int
+        BankId int
+        Type DepositType
+        Amount float32
+        CoinType CoinType
 
+bankName
+
+    {{range $deposit := .deposits}}
+      <tr></tr>
+      <div><a href="/depositEdit?id={{$deposit.Id}}">{{$deposit.Name}}</a></div>
+    {{end}}
     </table>
   </body>
 </html>

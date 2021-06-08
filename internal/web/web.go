@@ -1,7 +1,6 @@
 package web
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,67 +11,119 @@ import (
 
 func memberList(w http.ResponseWriter, r *http.Request) {
 	tpl, err := getTemplate("/memberList.html")
-	if responseError(err, w) {
+	if responseForError(err, w) {
 		return
 	}
 	members, err := db.QueryMembers()
-	if responseError(err, w) {
+	if responseForError(err, w) {
 		return
 	}
 	err = tpl.Execute(w, map[string]interface{}{
 		"members": members,
 	})
-	responseError(err, w)
+	responseForError(err, w)
 }
 
 func depositList(w http.ResponseWriter, r *http.Request) {
-	memberId, err := getIntParameter(r, "memberId")
-	if responseError(err, w) {
+	memberId, _, err := getIntParameter(r, "memberId", true)
+	if responseForError(err, w) {
 		return
 	}
 	tpl, err := getTemplate("/depositList.html")
-	if responseError(err, w) {
+	if responseForError(err, w) {
 		return
 	}
 	deposits, err := dp.QueryDeposits(memberId)
-	if responseError(err, w) {
+	if responseForError(err, w) {
 		return
 	}
 	err = tpl.Execute(w, map[string]interface{}{
 		"memberId": memberId,
 		"deposits": deposits,
 	})
-	responseError(err, w)
+	responseForError(err, w)
 }
 
 func depositEdit(w http.ResponseWriter, r *http.Request) {
 	tpl, err := getTemplate("/depositEdit.html")
-	if responseError(err, w) {
+	if responseForError(err, w) {
 		return
 	}
-	id, err := getIntParameter(r, "id")
-	if responseError(err, w) {
+	id, found, err := getIntParameter(r, "id", false)
+	if responseForError(err, w) {
 		return
 	}
 	var deposit *dp.Deposit
-	if id != 0 {
+	if found {
 		deposit, err = dp.GetDeposit(id)
 		if err == nil && deposit == nil {
-			err = errors.New(fmt.Sprintf("Deposit %d 不存在!", id))
+			err = fmt.Errorf("deposit %d 不存在", id)
 		}
-		if responseError(err, w) {
+		if responseForError(err, w) {
 			return
 		}
 	} else {
-		deposit = &dp.Deposit{}
+		memberId, _, err := getIntParameter(r, "memberId", true)
+		if responseForError(err, w) {
+			return
+		}
+		deposit = &dp.Deposit{MemberId: memberId}
 	}
 	err = tpl.Execute(w, deposit)
-	responseError(err, w)
+	responseForError(err, w)
+}
+
+func depositUpdate(w http.ResponseWriter, r *http.Request) {
+    if err := r.ParseForm(); err != nil {
+        fmt.Fprintf(w, "ParseForm() err: %v", err)
+        return
+	}
+	deposit := &dp.Deposit{}
+
+	id, hasId, err := getIntParameter(r, "id", false)
+	if responseForError(err, w) {
+		return
+	}
+	if hasId {
+		deposit.Id = id
+	}
+
+	deposit.MemberId, _, err = getIntParameter(r, "memberId", true)
+	if responseForError(err, w) {
+		return
+	}
+
+	deposit.BankId, _, err = getIntParameter(r, "bankId", true)
+	if responseForError(err, w) {
+		return
+	}
+
+	typeCode, _, err := getIntParameter(r, "typeCode", true)
+	if responseForError(err, w) {
+		return
+	}
+	deposit.Type, err = dp.GetDepositTypeByCode(typeCode)
+	if responseForError(err, w) {
+		return
+	}
+
+	deposit.Amount, _, err = getFloatParameter(r, "amount", true)
+	if responseForError(err, w) {
+		return
+	}
+
+	coinTypeCode := r.URL.Query().Get("coinTypeCode")
+	deposit.CoinType, err = dp.GetCoinTypeByCode(coinTypeCode)
+	responseForError(err, w)
+
+    r.Response.
+    w.
 }
 
 func Start() {
 	http.HandleFunc("/", memberList)
 	http.HandleFunc("/depositList", depositList)
 	http.HandleFunc("/depositEdit", depositEdit)
+	http.HandleFunc("/depositUpdate", depositUpdate)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

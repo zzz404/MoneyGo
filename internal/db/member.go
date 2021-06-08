@@ -1,12 +1,12 @@
 package db
 
 type Member struct {
-	Id   int8
+	Id   int
 	Name string
 }
 
 type Bank struct {
-	Id   int8
+	Id   int
 	Name string
 }
 

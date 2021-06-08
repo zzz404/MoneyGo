@@ -14,8 +14,12 @@ func main() {
 	signal.Notify(c, os.Interrupt)
 	go func() {
 		for range c {
-			fmt.Println("zzz")
-			db.DB.Close()
+			err := db.DB.Close()
+			if err != nil {
+				fmt.Println(err.Error())
+			} else {
+				fmt.Println("db closed")
+			}
 			os.Exit(0)
 		}
 	}()
