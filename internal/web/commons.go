@@ -44,8 +44,46 @@ func lackParamError(name string) error {
 	return fmt.Errorf("缺少必要參數 : %s", name)
 }
 
-func getIntParameter(r *http.Request, name string, required bool) (int, bool, error) {
-	strValue := r.URL.Query().Get(name)
+type HttpRequest struct {
+	*http.Request
+	isPost bool
+}
+
+type HttpResponse struct {
+	http.ResponseWriter
+}
+
+func makeHandler(fn func(*HttpRequest, *HttpResponse)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ww := &HttpResponse{w}
+		rr := &HttpRequest{r, r.Method == "POST"}
+		if rr.isPost {
+			err := r.ParseForm()
+			if err != nil {
+				ww.responseForError(err)
+				return
+			}
+		}
+		fn(rr, ww)
+	}
+}
+
+func (w HttpResponse) responseForError(err error) bool {
+	if err != nil {
+		fmt.Fprintf(w, "Error: %s", err.Error())
+		return true
+	}
+	w.Header()
+	return false
+}
+
+func (r *HttpRequest) getIntParameter(name string, required bool) (int, bool, error) {
+	var strValue string
+	if r.isPost {
+		strValue = r.FormValue(name)
+	} else {
+		strValue = r.URL.Query().Get(name)
+	}
 	if strValue == "" {
 		if required {
 			return 0, false, lackParamError(name)
@@ -58,7 +96,7 @@ func getIntParameter(r *http.Request, name string, required bool) (int, bool, er
 	}
 }
 
-func getFloatParameter(r *http.Request, name string, required bool) (float32, bool, error) {
+func (r *HttpRequest) getFloatParameter(name string, required bool) (float32, bool, error) {
 	strValue := r.URL.Query().Get(name)
 	if strValue == "" {
 		if required {
@@ -73,12 +111,4 @@ func getFloatParameter(r *http.Request, name string, required bool) (float32, bo
 	} else {
 		return float32(value), true, nil
 	}
-}
-
-func responseForError(err error, w http.ResponseWriter) bool {
-	if err != nil {
-		fmt.Fprintf(w, "Error: %s", err.Error())
-		return true
-	}
-	return false
 }

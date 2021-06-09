@@ -99,7 +99,6 @@ func QueryDeposits(memberId int) ([]*Deposit, error) {
 		deposits = append(deposits, deposit)
 	}
 	return deposits, nil
-
 }
 
 func GetDeposit(id int) (*Deposit, error) {
@@ -125,21 +124,26 @@ func GetDeposit(id int) (*Deposit, error) {
 	return deposit, nil
 }
 
-func AddDeposit(deposit *Deposit) error {
+func AddDeposit(deposit *Deposit) (int, error) {
 	params, err := db.ToSqlParams(len(columns) - 1)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	sql := fmt.Sprintf("INSERT INTO Deposit (%s) VALUES (%s)",
 		db.ToColumnsString(columns[1:]), params)
 	pstmt, err := db.DB.Prepare(sql)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer pstmt.Close()
 
-	_, err = pstmt.Exec(deposit.toTableValues()[1:]...)
-	return err
+	result, err := pstmt.Exec(deposit.toTableValues()[1:]...)
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	return int(id), err
 }
 
 func UpdateDeposit(deposit *Deposit) error {

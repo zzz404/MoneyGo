@@ -9,48 +9,48 @@ import (
 	dp "github.com/zzz404/MoneyGo/internal/deposit"
 )
 
-func memberList(w http.ResponseWriter, r *http.Request) {
+func memberList(r *HttpRequest, w *HttpResponse) {
 	tpl, err := getTemplate("/memberList.html")
-	if responseForError(err, w) {
+	if w.responseForError(err) {
 		return
 	}
 	members, err := db.QueryMembers()
-	if responseForError(err, w) {
+	if w.responseForError(err) {
 		return
 	}
 	err = tpl.Execute(w, map[string]interface{}{
 		"members": members,
 	})
-	responseForError(err, w)
+	w.responseForError(err)
 }
 
-func depositList(w http.ResponseWriter, r *http.Request) {
-	memberId, _, err := getIntParameter(r, "memberId", true)
-	if responseForError(err, w) {
+func depositList(r *HttpRequest, w *HttpResponse) {
+	memberId, _, err := r.getIntParameter("memberId", true)
+	if w.responseForError(err) {
 		return
 	}
 	tpl, err := getTemplate("/depositList.html")
-	if responseForError(err, w) {
+	if w.responseForError(err) {
 		return
 	}
 	deposits, err := dp.QueryDeposits(memberId)
-	if responseForError(err, w) {
+	if w.responseForError(err) {
 		return
 	}
 	err = tpl.Execute(w, map[string]interface{}{
 		"memberId": memberId,
 		"deposits": deposits,
 	})
-	responseForError(err, w)
+	w.responseForError(err)
 }
 
-func depositEdit(w http.ResponseWriter, r *http.Request) {
+func depositEdit(r *HttpRequest, w *HttpResponse) {
 	tpl, err := getTemplate("/depositEdit.html")
-	if responseForError(err, w) {
+	if w.responseForError(err) {
 		return
 	}
-	id, found, err := getIntParameter(r, "id", false)
-	if responseForError(err, w) {
+	id, found, err := r.getIntParameter("id", false)
+	if w.responseForError(err) {
 		return
 	}
 	var deposit *dp.Deposit
@@ -59,71 +59,81 @@ func depositEdit(w http.ResponseWriter, r *http.Request) {
 		if err == nil && deposit == nil {
 			err = fmt.Errorf("deposit %d 不存在", id)
 		}
-		if responseForError(err, w) {
+		if w.responseForError(err) {
 			return
 		}
 	} else {
-		memberId, _, err := getIntParameter(r, "memberId", true)
-		if responseForError(err, w) {
+		memberId, _, err := r.getIntParameter("memberId", true)
+		if w.responseForError(err) {
 			return
 		}
 		deposit = &dp.Deposit{MemberId: memberId}
 	}
 	err = tpl.Execute(w, deposit)
-	responseForError(err, w)
+	w.responseForError(err)
 }
 
-func depositUpdate(w http.ResponseWriter, r *http.Request) {
-    if err := r.ParseForm(); err != nil {
-        fmt.Fprintf(w, "ParseForm() err: %v", err)
-        return
-	}
+func depositUpdate(r *HttpRequest, w *HttpResponse) {
 	deposit := &dp.Deposit{}
 
-	id, hasId, err := getIntParameter(r, "id", false)
-	if responseForError(err, w) {
+	id, hasId, err := r.getIntParameter("id", false)
+	if w.responseForError(err) {
 		return
 	}
 	if hasId {
 		deposit.Id = id
 	}
 
-	deposit.MemberId, _, err = getIntParameter(r, "memberId", true)
-	if responseForError(err, w) {
+	deposit.MemberId, _, err = r.getIntParameter("memberId", true)
+	if w.responseForError(err) {
 		return
 	}
 
-	deposit.BankId, _, err = getIntParameter(r, "bankId", true)
-	if responseForError(err, w) {
+	deposit.BankId, _, err = r.getIntParameter("bankId", true)
+	if w.responseForError(err) {
 		return
 	}
 
-	typeCode, _, err := getIntParameter(r, "typeCode", true)
-	if responseForError(err, w) {
+	typeCode, _, err := r.getIntParameter("typeCode", true)
+	if w.responseForError(err) {
 		return
 	}
 	deposit.Type, err = dp.GetDepositTypeByCode(typeCode)
-	if responseForError(err, w) {
+	if w.responseForError(err) {
 		return
 	}
 
-	deposit.Amount, _, err = getFloatParameter(r, "amount", true)
-	if responseForError(err, w) {
+	deposit.Amount, _, err = r.getFloatParameter("amount", true)
+	if w.responseForError(err) {
 		return
 	}
 
 	coinTypeCode := r.URL.Query().Get("coinTypeCode")
 	deposit.CoinType, err = dp.GetCoinTypeByCode(coinTypeCode)
-	responseForError(err, w)
+	if w.responseForError(err) {
+		return
+	}
 
-    r.Response.
-    w.
+	if hasId {
+		err = dp.UpdateDeposit(deposit)
+		if w.responseForError(err) {
+			return
+		}
+	} else {
+		id, err = dp.AddDeposit(deposit)
+		if w.responseForError(err) {
+			return
+		}
+	}
+
+	url := fmt.Sprintf("/depositEdit?id=%d", id)
+	http.Redirect(w, r.Request, url, http.StatusSeeOther)
 }
 
 func Start() {
-	http.HandleFunc("/", memberList)
-	http.HandleFunc("/depositList", depositList)
-	http.HandleFunc("/depositEdit", depositEdit)
-	http.HandleFunc("/depositUpdate", depositUpdate)
+	http.HandleFunc("/", makeHandler(memberList))
+	http.HandleFunc("/depositList", makeHandler(depositList))
+	http.HandleFunc("/depositEdit", makeHandler(depositEdit))
+	http.HandleFunc("/depositUpdate", makeHandler(depositUpdate))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
