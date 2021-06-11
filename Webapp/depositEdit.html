@@ -1,7 +1,73 @@
 <html>
   <body>
-    <form>
-
+    <form action="depositUpdate" method="POST">
+      <table>
+        <tr>
+          <td>成員</td>
+          <td>
+            {{.memberName}}
+            <input type="hidden" name="memberId" value="{{.deposit.MemberId}}" />
+          </td>
+        </tr>
+        <tr>
+          <td>銀行</td>
+          <td>
+            <select name="bankId" required="true">
+              <option value="">選擇銀行</option>
+            {{ range .banks }}
+              <option value="{{ .Id }}"{{ if eq .Id $.deposit.MemberId }}selected="selected" {{ end }}>{{ .Name }}</option>
+            {{ end }}
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td>種類</td>
+          <td>
+          {{ range .depositTypes }}
+            <input type="radio" name="typeCode" value="{{ .Code }}" required="required"
+              {{ if eq .Code $.deposit.Type }}selected="selected" {{ end }} />
+            {{.Name}} &nbsp;&nbsp;
+          {{ end }}
+          </td>
+        </tr>
+        <tr>
+          <td>金額</td>
+          <td>
+            <input type="number" name="amount" value="{{.deposit.Amount}}" />
+          </td>
+        </tr>
+        <tr>
+          <td>幣別</td>
+          <td>
+          {{ range .coinTypes }}
+          <input type="radio" name="coinTypeCode" value="{{ .Code }}" required="required" 
+            {{ if eq .Code $.deposit.CoinType}}selected="selected" {{ end }} />
+            {{.Name}} &nbsp;&nbsp;
+          {{ end }}
+          </td>
+        </tr>
+      </table>
     </form>
   </body>
 </html>
+
+<!--
+  err = tpl.Execute(w, map[string]interface{}{
+  "deposit": deposit,
+  "members": mb.Members,
+  })
+
+type Deposit struct {
+	Id       int
+	MemberId int
+	BankId   int
+	Type     *DepositType
+	Amount   float32
+	CoinType *CoinType
+}
+
+type Member struct {
+	Id   int
+	Name string
+}
+-->

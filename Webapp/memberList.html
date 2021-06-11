@@ -1,7 +1,7 @@
 <html>
   <body>
-    {{range $member := .members}}
-    <div><a href="/depositList?memberId={{$member.Id}}">{{$member.Name}}</a></div>
+    {{range .members}}
+    <div><a href="/depositList?memberId={{.Id}}">{{.Name}}</a></div>
     {{end}}
   </body>
 </html>

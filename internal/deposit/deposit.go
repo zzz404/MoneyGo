@@ -16,6 +16,8 @@ var RMB CoinType = CoinType{Code: "RMB", Name: "人民幣"}
 var TWD CoinType = CoinType{Code: "TWD", Name: "台幣"}
 var USD CoinType = CoinType{Code: "USD", Name: "美金"}
 
+var CoinTypes = []CoinType{TWD, RMB, USD}
+
 func GetCoinTypeByCode(code string) (*CoinType, error) {
 	switch code {
 	case RMB.Code:
@@ -35,6 +37,8 @@ type DepositType struct {
 
 var DemandDeposit DepositType = DepositType{Code: 1, Name: "活存"}
 var TimeDeposit DepositType = DepositType{Code: 2, Name: "定存"}
+
+var DepositTypes = []DepositType{DemandDeposit, TimeDeposit}
 
 func GetDepositTypeByCode(code int) (*DepositType, error) {
 	switch code {
@@ -82,7 +86,7 @@ func (d *Deposit) toTableValues() []interface{} {
 }
 
 func QueryDeposits(memberId int) ([]*Deposit, error) {
-	sql := "SELECT " + db.ToColumnsString(columns) + " FROM Deposit WHERE memberId=?"
+	sql := "SELECT " + db.ToColumnsString(columns) + " FROM Deposit WHERE memberId=? ORDER BY bankId"
 	rows, err := db.DB.Query(sql, memberId)
 	if err != nil {
 		return nil, err

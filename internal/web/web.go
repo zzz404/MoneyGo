@@ -2,11 +2,11 @@ package web
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
-	"github.com/zzz404/MoneyGo/internal/db"
+	bk "github.com/zzz404/MoneyGo/internal/bank"
 	dp "github.com/zzz404/MoneyGo/internal/deposit"
+	mb "github.com/zzz404/MoneyGo/internal/member"
 )
 
 func memberList(r *HttpRequest, w *HttpResponse) {
@@ -14,10 +14,7 @@ func memberList(r *HttpRequest, w *HttpResponse) {
 	if w.responseForError(err) {
 		return
 	}
-	members, err := db.QueryMembers()
-	if w.responseForError(err) {
-		return
-	}
+	members := mb.Members
 	err = tpl.Execute(w, map[string]interface{}{
 		"members": members,
 	})
@@ -69,7 +66,14 @@ func depositEdit(r *HttpRequest, w *HttpResponse) {
 		}
 		deposit = &dp.Deposit{MemberId: memberId}
 	}
-	err = tpl.Execute(w, deposit)
+
+	err = tpl.Execute(w, map[string]interface{}{
+		"deposit":      deposit,
+		"memberName":   mb.GetMember(deposit.MemberId),
+		"banks":        bk.Banks,
+		"depositTypes": dp.DepositTypes,
+		"coinTypes":    dp.CoinTypes,
+	})
 	w.responseForError(err)
 }
 
@@ -131,9 +135,13 @@ func depositUpdate(r *HttpRequest, w *HttpResponse) {
 }
 
 func Start() {
-	http.HandleFunc("/", makeHandler(memberList))
-	http.HandleFunc("/depositList", makeHandler(depositList))
-	http.HandleFunc("/depositEdit", makeHandler(depositEdit))
-	http.HandleFunc("/depositUpdate", makeHandler(depositUpdate))
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	handleFunc("/", memberList)
+	handleFunc("/depositList", depositList)
+	handleFunc("/depositEdit", depositEdit)
+	handleFunc("/depositUpdate", depositUpdate)
+
+	err := http.ListenAndServe(":8080", nil)
+	if err != nil {
+		fmt.Printf("Error! 結束時發生錯誤: %s\n", err.Error())
+	}
 }

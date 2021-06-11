@@ -53,21 +53,6 @@ type HttpResponse struct {
 	http.ResponseWriter
 }
 
-func makeHandler(fn func(*HttpRequest, *HttpResponse)) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ww := &HttpResponse{w}
-		rr := &HttpRequest{r, r.Method == "POST"}
-		if rr.isPost {
-			err := r.ParseForm()
-			if err != nil {
-				ww.responseForError(err)
-				return
-			}
-		}
-		fn(rr, ww)
-	}
-}
-
 func (w HttpResponse) responseForError(err error) bool {
 	if err != nil {
 		fmt.Fprintf(w, "Error: %s", err.Error())
@@ -111,4 +96,20 @@ func (r *HttpRequest) getFloatParameter(name string, required bool) (float32, bo
 	} else {
 		return float32(value), true, nil
 	}
+}
+
+func handleFunc(path string, fn func(r *HttpRequest, w *HttpResponse)) {
+	f := func(w http.ResponseWriter, r *http.Request) {
+		ww := &HttpResponse{w}
+		rr := &HttpRequest{r, r.Method == "POST"}
+		if rr.isPost {
+			err := r.ParseForm()
+			if err != nil {
+				ww.responseForError(err)
+				return
+			}
+		}
+		fn(rr, ww)
+	}
+	http.HandleFunc(path, f)
 }

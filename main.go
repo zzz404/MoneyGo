@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/signal"
 
+	_ "github.com/mattn/go-sqlite3"
+
 	"github.com/zzz404/MoneyGo/internal/db"
 	"github.com/zzz404/MoneyGo/internal/web"
 )
