@@ -1,6 +1,10 @@
 package member
 
-import "github.com/zzz404/MoneyGo/internal/db"
+import (
+	"fmt"
+
+	"github.com/zzz404/MoneyGo/internal/db"
+)
 
 type Member struct {
 	Id   int
@@ -26,11 +30,11 @@ func init() {
 	}
 }
 
-func GetMember(id int) *Member {
+func GetMember(id int) (*Member, error) {
 	for _, member := range Members {
 		if member.Id == id {
-			return member
+			return member, nil
 		}
 	}
-	return nil
+	return nil, fmt.Errorf("不認識的 memberId %d", id)
 }

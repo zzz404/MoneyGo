@@ -4,31 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 
+	bk "github.com/zzz404/MoneyGo/internal/bank"
 	"github.com/zzz404/MoneyGo/internal/db"
+	mb "github.com/zzz404/MoneyGo/internal/member"
+	"github.com/zzz404/MoneyGo/internal/utils"
 )
-
-type CoinType struct {
-	Code string
-	Name string
-}
-
-var RMB CoinType = CoinType{Code: "RMB", Name: "人民幣"}
-var TWD CoinType = CoinType{Code: "TWD", Name: "台幣"}
-var USD CoinType = CoinType{Code: "USD", Name: "美金"}
-
-var CoinTypes = []CoinType{TWD, RMB, USD}
-
-func GetCoinTypeByCode(code string) (*CoinType, error) {
-	switch code {
-	case RMB.Code:
-		return &RMB, nil
-	case TWD.Code:
-		return &TWD, nil
-	case USD.Code:
-		return &USD, nil
-	}
-	return nil, fmt.Errorf("不認識的 CoinType %s", code)
-}
 
 type DepositType struct {
 	Code int
@@ -38,7 +18,7 @@ type DepositType struct {
 var DemandDeposit DepositType = DepositType{Code: 1, Name: "活存"}
 var TimeDeposit DepositType = DepositType{Code: 2, Name: "定存"}
 
-var DepositTypes = []DepositType{DemandDeposit, TimeDeposit}
+var DepositTypes = []*DepositType{&DemandDeposit, &TimeDeposit}
 
 func GetDepositTypeByCode(code int) (*DepositType, error) {
 	switch code {
@@ -52,11 +32,20 @@ func GetDepositTypeByCode(code int) (*DepositType, error) {
 
 type Deposit struct {
 	Id       int
-	MemberId int
+	Member   *mb.Member
 	BankId   int
 	Type     *DepositType
 	Amount   float32
-	CoinType *CoinType
+	CoinType *utils.CoinType
+}
+
+func (d *Deposit) BankName() string {
+	bank := bk.GetBank(d.BankId)
+	if bank == nil {
+		return ""
+	} else {
+		return bank.Name
+	}
 }
 
 type Dao struct {
@@ -69,20 +58,28 @@ func (d *Deposit) load(rows *sql.Rows) error {
 	var coinTypeCode string
 	var depositTypeCode int
 
-	err := rows.Scan(&d.Id, &d.MemberId, &d.BankId, &depositTypeCode, &d.Amount, &coinTypeCode)
+	var memberId int
+	err := rows.Scan(&d.Id, &memberId, &d.BankId, &depositTypeCode, &d.Amount, &coinTypeCode)
 	if err != nil {
 		return err
 	}
+
+	member, err := mb.GetMember(memberId)
+	if err != nil {
+		return err
+	}
+	d.Member = member
+
 	d.Type, err = GetDepositTypeByCode(depositTypeCode)
 	if err != nil {
 		return err
 	}
-	d.CoinType, err = GetCoinTypeByCode(coinTypeCode)
+	d.CoinType, err = utils.GetCoinTypeByCode(coinTypeCode)
 	return err
 }
 
 func (d *Deposit) toTableValues() []interface{} {
-	return []interface{}{d.Id, d.MemberId, d.BankId, d.Type.Code, d.Amount, d.CoinType.Code}
+	return []interface{}{d.Id, d.Member.Id, d.BankId, d.Type.Code, d.Amount, d.CoinType.Code}
 }
 
 func QueryDeposits(memberId int) ([]*Deposit, error) {
@@ -121,7 +118,7 @@ func GetDeposit(id int) (*Deposit, error) {
 			return nil, fmt.Errorf("Deposit id %d 不只一個!?", id)
 		}
 		err = deposit.load(rows)
-		if err == nil {
+		if err != nil {
 			return nil, err
 		}
 	}

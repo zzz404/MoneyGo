@@ -5,19 +5,38 @@
     <a target="_new" href="/depositEdit?memberId={{.memberId}}">新增</a>
     <hr />
     所有存單:
-    <table>
-        Id int
-        MemberId int
-        BankId int
-        Type DepositType
-        Amount float32
-        CoinType CoinType
-
-bankName
-
+    <table border="1" width="100%">
+      <tr>
+        <td>成員</td>
+        <td>銀行</td>
+        <td>種類</td>
+        <td>金額</td>
+        <td>幣別</td>
+        <td>指令</td>
+      </tr>
     {{range $deposit := .deposits}}
-      <tr></tr>
-      <div><a href="/depositEdit?id={{$deposit.Id}}">{{$deposit.Name}}</a></div>
+      <tr>
+        <td>
+          {{.Member.Name}}
+        </td>
+        <td>
+          {{.BankName}}
+        </td>
+        <td>
+          {{.Type.Name}}
+        </td>
+        <td>
+          {{.Amount}}
+        </td>
+        <td>
+          {{.CoinType.Name}}
+        </td>
+        <td>
+          <a href="depositEdit?id={{.Id}}" target="_new">修改</a>
+          &nbsp;&nbsp;
+          <a href="depositDelete?id={{.Id}}">刪除</a>
+        </td>
+      </tr>
     {{end}}
     </table>
   </body>

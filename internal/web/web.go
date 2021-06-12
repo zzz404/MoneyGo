@@ -7,6 +7,7 @@ import (
 	bk "github.com/zzz404/MoneyGo/internal/bank"
 	dp "github.com/zzz404/MoneyGo/internal/deposit"
 	mb "github.com/zzz404/MoneyGo/internal/member"
+	"github.com/zzz404/MoneyGo/internal/utils"
 )
 
 func memberList(r *HttpRequest, w *HttpResponse) {
@@ -46,12 +47,12 @@ func depositEdit(r *HttpRequest, w *HttpResponse) {
 	if w.responseForError(err) {
 		return
 	}
-	id, found, err := r.getIntParameter("id", false)
+	id, isEdit, err := r.getIntParameter("id", false)
 	if w.responseForError(err) {
 		return
 	}
 	var deposit *dp.Deposit
-	if found {
+	if isEdit {
 		deposit, err = dp.GetDeposit(id)
 		if err == nil && deposit == nil {
 			err = fmt.Errorf("deposit %d 不存在", id)
@@ -64,16 +65,24 @@ func depositEdit(r *HttpRequest, w *HttpResponse) {
 		if w.responseForError(err) {
 			return
 		}
-		deposit = &dp.Deposit{MemberId: memberId}
+		member, err := mb.GetMember(memberId)
+		if w.responseForError(err) {
+			return
+		}
+		deposit = &dp.Deposit{Member: member}
 	}
 
-	err = tpl.Execute(w, map[string]interface{}{
+	data := map[string]interface{}{
 		"deposit":      deposit,
-		"memberName":   mb.GetMember(deposit.MemberId),
 		"banks":        bk.Banks,
 		"depositTypes": dp.DepositTypes,
-		"coinTypes":    dp.CoinTypes,
-	})
+		"coinTypes":    utils.CoinTypes,
+	}
+	if isEdit {
+		data["id"] = deposit.Id
+	}
+	err = tpl.Execute(w, data)
+
 	w.responseForError(err)
 }
 
@@ -88,10 +97,15 @@ func depositUpdate(r *HttpRequest, w *HttpResponse) {
 		deposit.Id = id
 	}
 
-	deposit.MemberId, _, err = r.getIntParameter("memberId", true)
+	memberId, _, err := r.getIntParameter("memberId", true)
 	if w.responseForError(err) {
 		return
 	}
+	member, err := mb.GetMember(memberId)
+	if w.responseForError(err) {
+		return
+	}
+	deposit.Member = member
 
 	deposit.BankId, _, err = r.getIntParameter("bankId", true)
 	if w.responseForError(err) {
@@ -112,8 +126,12 @@ func depositUpdate(r *HttpRequest, w *HttpResponse) {
 		return
 	}
 
-	coinTypeCode := r.URL.Query().Get("coinTypeCode")
-	deposit.CoinType, err = dp.GetCoinTypeByCode(coinTypeCode)
+	coinTypeCode, _, err := r.getParameter("coinTypeCode", true)
+	if w.responseForError(err) {
+		return
+	}
+
+	deposit.CoinType, err = utils.GetCoinTypeByCode(coinTypeCode)
 	if w.responseForError(err) {
 		return
 	}
@@ -134,11 +152,24 @@ func depositUpdate(r *HttpRequest, w *HttpResponse) {
 	http.Redirect(w, r.Request, url, http.StatusSeeOther)
 }
 
+func depositDelete(r *HttpRequest, w *HttpResponse) {
+	id, _, err := r.getIntParameter("id", true)
+	if w.responseForError(err) {
+		return
+	}
+	err = dp.DeleteDeposit(id)
+	if w.responseForError(err) {
+		return
+	}
+	http.Redirect(w, r.Request, "/depositList", http.StatusSeeOther)
+}
+
 func Start() {
 	handleFunc("/", memberList)
 	handleFunc("/depositList", depositList)
 	handleFunc("/depositEdit", depositEdit)
 	handleFunc("/depositUpdate", depositUpdate)
+	handleFunc("/depositDelete", depositDelete)
 
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {

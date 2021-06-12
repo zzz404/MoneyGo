@@ -8,10 +8,11 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/zzz404/MoneyGo/internal/db"
+	"github.com/zzz404/MoneyGo/internal/utils"
 	"github.com/zzz404/MoneyGo/internal/web"
 )
 
-func main() {
+func main2() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	go func() {
@@ -27,4 +28,8 @@ func main() {
 	}()
 
 	web.Start()
+}
+
+func main() {
+	utils.Ccc()
 }

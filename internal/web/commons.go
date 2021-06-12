@@ -62,7 +62,7 @@ func (w HttpResponse) responseForError(err error) bool {
 	return false
 }
 
-func (r *HttpRequest) getIntParameter(name string, required bool) (int, bool, error) {
+func (r *HttpRequest) getParameter(name string, required bool) (string, bool, error) {
 	var strValue string
 	if r.isPost {
 		strValue = r.FormValue(name)
@@ -70,31 +70,32 @@ func (r *HttpRequest) getIntParameter(name string, required bool) (int, bool, er
 		strValue = r.URL.Query().Get(name)
 	}
 	if strValue == "" {
+		var err error
 		if required {
-			return 0, false, lackParamError(name)
-		} else {
-			return 0, false, nil
+			err = lackParamError(name)
 		}
+		return "", false, err
+	}
+	return strValue, true, nil
+}
+
+func (r *HttpRequest) getIntParameter(name string, required bool) (int, bool, error) {
+	strValue, found, err := r.getParameter(name, required)
+	if err != nil || !found {
+		return 0, found, err
 	} else {
-		i, err := strconv.Atoi(strValue)
-		return i, true, err
+		value, err := strconv.Atoi(strValue)
+		return value, found, err
 	}
 }
 
 func (r *HttpRequest) getFloatParameter(name string, required bool) (float32, bool, error) {
-	strValue := r.URL.Query().Get(name)
-	if strValue == "" {
-		if required {
-			return 0, false, lackParamError(name)
-		} else {
-			return 0, false, nil
-		}
-	}
-	value, err := strconv.ParseFloat(strValue, 32)
-	if err != nil {
-		return 0, true, err
+	strValue, found, err := r.getParameter(name, required)
+	if err != nil || !found {
+		return 0, found, err
 	} else {
-		return float32(value), true, nil
+		value, err := strconv.ParseFloat(strValue, 32)
+		return float32(value), found, err
 	}
 }
 
