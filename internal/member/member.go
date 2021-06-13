@@ -30,11 +30,11 @@ func init() {
 	}
 }
 
-func GetMember(id int) (*Member, error) {
+func GetMember(id int) *Member {
 	for _, member := range Members {
 		if member.Id == id {
-			return member, nil
+			return member
 		}
 	}
-	return nil, fmt.Errorf("不認識的 memberId %d", id)
+	panic(fmt.Errorf("MemberId %d 不存在", id))
 }

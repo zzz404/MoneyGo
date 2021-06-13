@@ -1,8 +1,8 @@
 package deposit
 
 import (
-	"database/sql"
 	"fmt"
+	"time"
 
 	bk "github.com/zzz404/MoneyGo/internal/bank"
 	"github.com/zzz404/MoneyGo/internal/coin"
@@ -20,74 +20,85 @@ var TimeDeposit DepositType = DepositType{Code: 2, Name: "定存"}
 
 var DepositTypes = []*DepositType{&DemandDeposit, &TimeDeposit}
 
-func GetDepositTypeByCode(code int) (*DepositType, error) {
+func GetDepositTypeByCode(code int) *DepositType {
 	switch code {
 	case DemandDeposit.Code:
-		return &DemandDeposit, nil
+		return &DemandDeposit
 	case TimeDeposit.Code:
-		return &TimeDeposit, nil
+		return &TimeDeposit
 	}
-	return nil, fmt.Errorf("不認識的 DepositType %d", code)
+	panic(fmt.Errorf("DepositType %d 不存在", code))
 }
 
 type Deposit struct {
-	Id       int
-	Member   *mb.Member
-	BankId   int
-	Type     *DepositType
-	Amount   float64
-	CoinType *coin.CoinType
+	Id                int
+	MemberId          int
+	BankId            int
+	TypeCode          int
+	Amount            float64
+	CoinTypeCode      string
+	CreatedTime       time.Time
+	ExRateWhenCreated float64
+
+	_Type     *DepositType
+	_Member   *mb.Member
+	_Bank     *bk.Bank
+	_CoinType *coin.CoinType
 }
 
-func (d *Deposit) BankName() string {
-	bank := bk.GetBank(d.BankId)
-	if bank == nil {
-		return ""
-	} else {
-		return bank.Name
+func (d *Deposit) Type() *DepositType {
+	if d._Type == nil {
+		d._Type = GetDepositTypeByCode(d.TypeCode)
 	}
+	return d._Type
+}
+
+func (d *Deposit) Member() *mb.Member {
+	if d._Member == nil {
+		d._Member = mb.GetMember(d.MemberId)
+	}
+	return d._Member
+}
+
+func (d *Deposit) Bank() *bk.Bank {
+	if d._Bank == nil {
+		d._Bank = bk.GetBank(d.BankId)
+	}
+	return d._Bank
+}
+
+func (d *Deposit) CoinType() *coin.CoinType {
+	if d._CoinType == nil {
+		d._CoinType = coin.GetCoinTypeByCode(d.CoinTypeCode)
+	}
+	return d._CoinType
 }
 
 func (d *Deposit) TwAmount() float64 {
-	return d.Amount * d.CoinType.ExRate
+	return d.Amount * d.CoinType().ExRate
 }
 
-type Dao struct {
-	Columns []string
+var columnsForUpdate = []string{"bankId", "type", "amount", "coinType"}
+var columnsForInsert = append(columnsForUpdate, "memberId", "exRateWhenCreated")
+var columnsForQuery = append(columnsForInsert, "id", "createdTime")
+
+func (d *Deposit) toValuesOfUpdate() []interface{} {
+	return []interface{}{d.BankId, d.TypeCode, d.Amount, d.CoinTypeCode}
 }
 
-var columns = []string{"id", "memberId", "bankId", "type", "amount", "coinType"}
-
-func (d *Deposit) load(rows *sql.Rows) error {
-	var coinTypeCode string
-	var depositTypeCode int
-
-	var memberId int
-	err := rows.Scan(&d.Id, &memberId, &d.BankId, &depositTypeCode, &d.Amount, &coinTypeCode)
-	if err != nil {
-		return err
-	}
-
-	member, err := mb.GetMember(memberId)
-	if err != nil {
-		return err
-	}
-	d.Member = member
-
-	d.Type, err = GetDepositTypeByCode(depositTypeCode)
-	if err != nil {
-		return err
-	}
-	d.CoinType, err = coin.GetCoinTypeByCode(coinTypeCode)
-	return err
+func (d *Deposit) toValuesOfInsert() []interface{} {
+	return append(d.toValuesOfUpdate(), d.MemberId, d.ExRateWhenCreated)
 }
 
-func (d *Deposit) toTableValues() []interface{} {
-	return []interface{}{d.Id, d.Member.Id, d.BankId, d.Type.Code, d.Amount, d.CoinType.Code}
+func (d *Deposit) toValuesOfQuery() []interface{} {
+	return []interface{}{
+		&d.BankId, &d.TypeCode, &d.Amount, &d.CoinTypeCode,
+		&d.MemberId, &d.ExRateWhenCreated,
+		&d.Id, &d.CreatedTime}
 }
 
 func QueryDeposits(memberId int) ([]*Deposit, error) {
-	sql := "SELECT " + db.ToColumnsString(columns) + " FROM Deposit WHERE memberId=? ORDER BY bankId"
+	sql := "SELECT " + db.ToColumnsString(columnsForQuery) + " FROM Deposit WHERE memberId=? ORDER BY bankId"
 	rows, err := db.DB.Query(sql, memberId)
 	if err != nil {
 		return nil, err
@@ -97,17 +108,19 @@ func QueryDeposits(memberId int) ([]*Deposit, error) {
 	var deposits []*Deposit
 	for rows.Next() {
 		deposit := &Deposit{}
-		err = deposit.load(rows)
+
+		err := rows.Scan(deposit.toValuesOfQuery()...)
 		if err != nil {
 			return nil, err
 		}
+
 		deposits = append(deposits, deposit)
 	}
 	return deposits, nil
 }
 
 func GetDeposit(id int) (*Deposit, error) {
-	sql := "SELECT " + db.ToColumnsString(columns) + " FROM Deposit WHERE id=?"
+	sql := "SELECT " + db.ToColumnsString(columnsForQuery) + " FROM Deposit WHERE id=?"
 	rows, err := db.DB.Query(sql, id)
 	if err != nil {
 		return nil, err
@@ -121,7 +134,7 @@ func GetDeposit(id int) (*Deposit, error) {
 		} else {
 			return nil, fmt.Errorf("Deposit id %d 不只一個!?", id)
 		}
-		err = deposit.load(rows)
+		err := rows.Scan(deposit.toValuesOfQuery()...)
 		if err != nil {
 			return nil, err
 		}
@@ -130,19 +143,20 @@ func GetDeposit(id int) (*Deposit, error) {
 }
 
 func AddDeposit(deposit *Deposit) (int, error) {
-	params, err := db.ToSqlParams(len(columns) - 1)
+	params, err := db.ToSqlParams(len(columnsForInsert))
 	if err != nil {
 		return 0, err
 	}
 	sql := fmt.Sprintf("INSERT INTO Deposit (%s) VALUES (%s)",
-		db.ToColumnsString(columns[1:]), params)
+		db.ToColumnsString(columnsForInsert), params)
 	pstmt, err := db.DB.Prepare(sql)
 	if err != nil {
 		return 0, err
 	}
 	defer pstmt.Close()
 
-	result, err := pstmt.Exec(deposit.toTableValues()[1:]...)
+	deposit.ExRateWhenCreated = deposit.CoinType().ExRate
+	result, err := pstmt.Exec(deposit.toValuesOfInsert()...)
 	if err != nil {
 		return 0, err
 	}
@@ -153,7 +167,7 @@ func AddDeposit(deposit *Deposit) (int, error) {
 
 func UpdateDeposit(deposit *Deposit) error {
 	sql := fmt.Sprintf("UPDATE Deposit SET %s WHERE id=?",
-		db.ToSettersString(columns[1:]))
+		db.ToSettersString(columnsForUpdate))
 
 	pstmt, err := db.DB.Prepare(sql)
 	if err != nil {
@@ -161,8 +175,7 @@ func UpdateDeposit(deposit *Deposit) error {
 	}
 	defer pstmt.Close()
 
-	values := deposit.toTableValues()[1:]
-	values = append(values, deposit.Id)
+	values := append(deposit.toValuesOfUpdate(), deposit.Id)
 
 	_, err = pstmt.Exec(values...)
 	return err

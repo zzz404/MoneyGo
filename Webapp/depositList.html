@@ -13,6 +13,9 @@
         <td>金額</td>
         <td>幣別</td>
         <td>折合台幣</td>
+        <td>建立時間</td>
+        <td>建立時匯率</td>
+        <td>現在匯率</td>
         <td>指令</td>
       </tr>
     {{range $deposit := .deposits}}
@@ -21,7 +24,7 @@
           {{.Member.Name}}
         </td>
         <td>
-          {{.BankName}}
+          {{.Bank.Name}}
         </td>
         <td>
           {{.Type.Name}}
@@ -34,6 +37,15 @@
         </td>
         <td>
           {{.TwAmount}}
+        </td>
+        <td>
+          {{.CreatedTime}}
+        </td>
+        <td>
+          {{.ExRateWhenCreated}}
+        </td>
+        <td>
+          {{.CoinType.ExRate}}
         </td>
         <td>
           <a href="depositEdit?id={{.Id}}" target="_new">修改</a>

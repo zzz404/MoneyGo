@@ -1,6 +1,10 @@
 package bank
 
-import "github.com/zzz404/MoneyGo/internal/db"
+import (
+	"fmt"
+
+	"github.com/zzz404/MoneyGo/internal/db"
+)
 
 type Bank struct {
 	Id   int
@@ -32,5 +36,5 @@ func GetBank(id int) *Bank {
 			return bank
 		}
 	}
-	return nil
+	panic(fmt.Errorf("BankId %d 不存在", id))
 }

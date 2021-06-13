@@ -65,11 +65,7 @@ func depositEdit(r *HttpRequest, w *HttpResponse) {
 		if w.responseForError(err) {
 			return
 		}
-		member, err := mb.GetMember(memberId)
-		if w.responseForError(err) {
-			return
-		}
-		deposit = &dp.Deposit{Member: member}
+		deposit = &dp.Deposit{MemberId: memberId}
 	}
 
 	data := map[string]interface{}{
@@ -97,26 +93,17 @@ func depositUpdate(r *HttpRequest, w *HttpResponse) {
 		deposit.Id = id
 	}
 
-	memberId, _, err := r.getIntParameter("memberId", true)
+	deposit.MemberId, _, err = r.getIntParameter("memberId", true)
 	if w.responseForError(err) {
 		return
 	}
-	member, err := mb.GetMember(memberId)
-	if w.responseForError(err) {
-		return
-	}
-	deposit.Member = member
 
 	deposit.BankId, _, err = r.getIntParameter("bankId", true)
 	if w.responseForError(err) {
 		return
 	}
 
-	typeCode, _, err := r.getIntParameter("typeCode", true)
-	if w.responseForError(err) {
-		return
-	}
-	deposit.Type, err = dp.GetDepositTypeByCode(typeCode)
+	deposit.TypeCode, _, err = r.getIntParameter("typeCode", true)
 	if w.responseForError(err) {
 		return
 	}
@@ -126,12 +113,7 @@ func depositUpdate(r *HttpRequest, w *HttpResponse) {
 		return
 	}
 
-	coinTypeCode, _, err := r.getParameter("coinTypeCode", true)
-	if w.responseForError(err) {
-		return
-	}
-
-	deposit.CoinType, err = coin.GetCoinTypeByCode(coinTypeCode)
+	deposit.CoinTypeCode, _, err = r.getParameter("coinTypeCode", true)
 	if w.responseForError(err) {
 		return
 	}

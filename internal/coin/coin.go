@@ -145,11 +145,11 @@ func queryExchangeRate(coinTypeCode string) (float64, error) {
 	return exRate, nil
 }
 
-func GetCoinTypeByCode(code string) (*CoinType, error) {
+func GetCoinTypeByCode(code string) *CoinType {
 	for _, coinType := range CoinTypes {
 		if code == coinType.Code {
-			return coinType, nil
+			return coinType
 		}
 	}
-	return nil, fmt.Errorf("不認識的 CoinType %s", code)
+	panic(fmt.Errorf("CoinType %s 不存在", code))
 }
