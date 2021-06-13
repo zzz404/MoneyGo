@@ -6,12 +6,13 @@
     <hr />
     所有存單:
     <table border="1" width="100%">
-      <tr>
+      <tr style="background-color:cyan;font-weight:bold;">
         <td>成員</td>
         <td>銀行</td>
         <td>種類</td>
         <td>金額</td>
         <td>幣別</td>
+        <td>折合台幣</td>
         <td>指令</td>
       </tr>
     {{range $deposit := .deposits}}
@@ -32,9 +33,12 @@
           {{.CoinType.Name}}
         </td>
         <td>
+          {{.TwAmount}}
+        </td>
+        <td>
           <a href="depositEdit?id={{.Id}}" target="_new">修改</a>
           &nbsp;&nbsp;
-          <a href="depositDelete?id={{.Id}}">刪除</a>
+          <a href="depositDelete?id={{.Id}}&memberId={{$.memberId}}">刪除</a>
         </td>
       </tr>
     {{end}}

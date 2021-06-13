@@ -80,7 +80,7 @@ func updateExRateToDb(m map[string]float64) error {
 var CoinTypes []*CoinType
 
 func loadCoinTypes() error {
-	rows, err := db.DB.Query("SELECT code, name FROM CoinType")
+	rows, err := db.DB.Query("SELECT code, name, exchangeRate FROM CoinType")
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func loadCoinTypes() error {
 
 	for rows.Next() {
 		coinType := CoinType{}
-		err = rows.Scan(&coinType.Code, &coinType.Name)
+		err = rows.Scan(&coinType.Code, &coinType.Name, &coinType.ExRate)
 		if err != nil {
 			return err
 		}
