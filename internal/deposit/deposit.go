@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	bk "github.com/zzz404/MoneyGo/internal/bank"
+	"github.com/zzz404/MoneyGo/internal/coin"
 	"github.com/zzz404/MoneyGo/internal/db"
 	mb "github.com/zzz404/MoneyGo/internal/member"
-	"github.com/zzz404/MoneyGo/internal/utils"
 )
 
 type DepositType struct {
@@ -35,8 +35,8 @@ type Deposit struct {
 	Member   *mb.Member
 	BankId   int
 	Type     *DepositType
-	Amount   float32
-	CoinType *utils.CoinType
+	Amount   float64
+	CoinType *coin.CoinType
 }
 
 func (d *Deposit) BankName() string {
@@ -46,6 +46,10 @@ func (d *Deposit) BankName() string {
 	} else {
 		return bank.Name
 	}
+}
+
+func (d *Deposit) TwAmount() float64 {
+	return d.Amount * d.CoinType.ExRate
 }
 
 type Dao struct {
@@ -74,7 +78,7 @@ func (d *Deposit) load(rows *sql.Rows) error {
 	if err != nil {
 		return err
 	}
-	d.CoinType, err = utils.GetCoinTypeByCode(coinTypeCode)
+	d.CoinType, err = coin.GetCoinTypeByCode(coinTypeCode)
 	return err
 }
 
@@ -153,7 +157,7 @@ func UpdateDeposit(deposit *Deposit) error {
 
 	pstmt, err := db.DB.Prepare(sql)
 	if err != nil {
-		return nil
+		return err
 	}
 	defer pstmt.Close()
 

@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	bk "github.com/zzz404/MoneyGo/internal/bank"
+	"github.com/zzz404/MoneyGo/internal/coin"
 	dp "github.com/zzz404/MoneyGo/internal/deposit"
 	mb "github.com/zzz404/MoneyGo/internal/member"
-	"github.com/zzz404/MoneyGo/internal/utils"
 )
 
 func memberList(r *HttpRequest, w *HttpResponse) {
@@ -76,7 +76,7 @@ func depositEdit(r *HttpRequest, w *HttpResponse) {
 		"deposit":      deposit,
 		"banks":        bk.Banks,
 		"depositTypes": dp.DepositTypes,
-		"coinTypes":    utils.CoinTypes,
+		"coinTypes":    coin.CoinTypes,
 	}
 	if isEdit {
 		data["id"] = deposit.Id
@@ -131,7 +131,7 @@ func depositUpdate(r *HttpRequest, w *HttpResponse) {
 		return
 	}
 
-	deposit.CoinType, err = utils.GetCoinTypeByCode(coinTypeCode)
+	deposit.CoinType, err = coin.GetCoinTypeByCode(coinTypeCode)
 	if w.responseForError(err) {
 		return
 	}
@@ -149,7 +149,7 @@ func depositUpdate(r *HttpRequest, w *HttpResponse) {
 	}
 
 	url := fmt.Sprintf("/depositEdit?id=%d", id)
-	http.Redirect(w, r.Request, url, http.StatusSeeOther)
+	w.Redirect(url, r)
 }
 
 func depositDelete(r *HttpRequest, w *HttpResponse) {
@@ -161,7 +161,7 @@ func depositDelete(r *HttpRequest, w *HttpResponse) {
 	if w.responseForError(err) {
 		return
 	}
-	http.Redirect(w, r.Request, "/depositList", http.StatusSeeOther)
+	w.Redirect("/depositList", r)
 }
 
 func Start() {

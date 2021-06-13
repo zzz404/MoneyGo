@@ -53,13 +53,17 @@ type HttpResponse struct {
 	http.ResponseWriter
 }
 
-func (w HttpResponse) responseForError(err error) bool {
+func (w *HttpResponse) responseForError(err error) bool {
 	if err != nil {
 		fmt.Fprintf(w, "Error: %s", err.Error())
 		return true
 	}
 	w.Header()
 	return false
+}
+
+func (res *HttpResponse) Redirect(url string, req *HttpRequest) {
+	http.Redirect(res, req.Request, url, http.StatusSeeOther)
 }
 
 func (r *HttpRequest) getParameter(name string, required bool) (string, bool, error) {
@@ -89,13 +93,13 @@ func (r *HttpRequest) getIntParameter(name string, required bool) (int, bool, er
 	}
 }
 
-func (r *HttpRequest) getFloatParameter(name string, required bool) (float32, bool, error) {
+func (r *HttpRequest) getFloatParameter(name string, required bool) (float64, bool, error) {
 	strValue, found, err := r.getParameter(name, required)
 	if err != nil || !found {
 		return 0, found, err
 	} else {
 		value, err := strconv.ParseFloat(strValue, 32)
-		return float32(value), found, err
+		return value, found, err
 	}
 }
 
