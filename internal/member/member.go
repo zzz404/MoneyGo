@@ -13,6 +13,10 @@ type Member struct {
 	TotalTWD float64
 }
 
+func (m *Member) TotalTWDString() string {
+	return fmt.Sprintf("%.2f", m.TotalTWD)
+}
+
 var Members []*Member
 
 func init() {

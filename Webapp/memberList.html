@@ -3,10 +3,10 @@
     {{range .members}}
     <div>
       <a href="/depositList?memberId={{.Id}}">{{.Name}}</a>
-      ({{.TotalTWD}})
+      ({{.TotalTWDString}})
     </div>
     {{end}}
     <hr />
-    總和: {{.totalTWD}}
+    總和: {{.totalTWDString}}
   </body>
 </html>

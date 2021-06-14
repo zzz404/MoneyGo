@@ -1,13 +1,25 @@
 <html>
+  <head>
+    <script>
+      function changeMember(memberId) {
+        location.href = `/depositList?memberId=${memberId}`;
+      }
+    </script>
+  </head>
   <body>
     <a href="/">所有人</a>
     <hr />
     <a target="_new" href="/depositEdit?memberId={{.memberId}}">新增</a>
     <hr />
+    <select onchange="changeMember(this.value);">
+      {{ range .members }}
+      <option value="{{ .Id }}" {{ if eq .Id $.memberId }}selected="selected" {{ end }}>{{ .Name }}</option>
+      {{ end }}
+    </select>
     所有存單:
+    共 {{.count}} 筆,    總金額 {{.totalTWD}}
     <table border="1" width="100%">
       <tr style="background-color:cyan;font-weight:bold;">
-        <td>成員</td>
         <td>銀行</td>
         <td>種類</td>
         <td>金額</td>
@@ -18,11 +30,8 @@
         <td>現在匯率</td>
         <td>指令</td>
       </tr>
-    {{range $deposit := .deposits}}
+    {{range .deposits}}
       <tr>
-        <td>
-          {{.Member.Name}}
-        </td>
         <td>
           {{.Bank.Name}}
         </td>
@@ -30,16 +39,16 @@
           {{.Type.Name}}
         </td>
         <td>
-          {{.Amount}}
+          {{.AmountString}}
         </td>
         <td>
           {{.CoinType.Name}}
         </td>
         <td>
-          {{.TwAmount}}
+          {{.TwAmountString}}
         </td>
         <td>
-          {{.CreatedTime}}
+          {{.CreatedTimeString}}
         </td>
         <td>
           {{.ExRateWhenCreated}}
@@ -50,7 +59,7 @@
         <td>
           <a href="depositEdit?id={{.Id}}" target="_new">修改</a>
           &nbsp;&nbsp;
-          <a href="depositDelete?id={{.Id}}&memberId={{$.memberId}}">刪除</a>
+          <a href="depositDelete?id={{.Id}}&memberId={{$.member.Id}}">刪除</a>
         </td>
       </tr>
     {{end}}

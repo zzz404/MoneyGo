@@ -32,8 +32,8 @@ func memberList(r *HttpRequest, w *HttpResponse) {
 	}
 
 	err = tpl.Execute(w, map[string]interface{}{
-		"members":  members,
-		"totalTWD": totalTWD,
+		"members":        members,
+		"totalTWDString": fmt.Sprintf("%.2f", totalTWD),
 	})
 
 	w.responseForError(err)
@@ -52,9 +52,18 @@ func depositList(r *HttpRequest, w *HttpResponse) {
 	if w.responseForError(err) {
 		return
 	}
+
+	totalTWD := 0.0
+	for _, d := range deposits {
+		totalTWD += d.Amount * d.CoinType().ExRate
+	}
+
 	err = tpl.Execute(w, map[string]interface{}{
 		"memberId": memberId,
+		"members":  mb.Members,
 		"deposits": deposits,
+		"count":    len(deposits),
+		"totalTWD": fmt.Sprintf("%.2f", totalTWD),
 	})
 	w.responseForError(err)
 }

@@ -74,8 +74,20 @@ func (d *Deposit) CoinType() *coin.CoinType {
 	return d._CoinType
 }
 
+func (d *Deposit) CreatedTimeString() string {
+	return d.CreatedTime.Format("2006-01-02 15:04:05")
+}
+
+func (d *Deposit) AmountString() string {
+	return fmt.Sprintf("%.2f", d.Amount)
+}
+
 func (d *Deposit) TwAmount() float64 {
 	return d.Amount * d.CoinType().ExRate
+}
+
+func (d *Deposit) TwAmountString() string {
+	return fmt.Sprintf("%.2f", d.TwAmount())
 }
 
 var columnsForUpdate = []string{"bankId", "type", "amount", "coinType"}
