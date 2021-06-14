@@ -1,7 +1,12 @@
 <html>
   <body>
     {{range .members}}
-    <div><a href="/depositList?memberId={{.Id}}">{{.Name}}</a></div>
+    <div>
+      <a href="/depositList?memberId={{.Id}}">{{.Name}}</a>
+      ({{.TotalTWD}})
+    </div>
     {{end}}
+    <hr />
+    總和: {{.totalTWD}}
   </body>
 </html>

@@ -15,10 +15,27 @@ func memberList(r *HttpRequest, w *HttpResponse) {
 	if w.responseForError(err) {
 		return
 	}
-	members := mb.Members
+	m, totalTWD, err := dp.QueryTotalTWD()
+	if w.responseForError(err) {
+		return
+	}
+	var members []*mb.Member
+	for _, member1 := range mb.Members {
+		member2 := member1
+		memberTotal, ok := m[member2.Id]
+		if ok {
+			member2.TotalTWD = memberTotal
+		} else {
+			member2.TotalTWD = 0
+		}
+		members = append(members, member2)
+	}
+
 	err = tpl.Execute(w, map[string]interface{}{
-		"members": members,
+		"members":  members,
+		"totalTWD": totalTWD,
 	})
+
 	w.responseForError(err)
 }
 
@@ -124,14 +141,12 @@ func depositUpdate(r *HttpRequest, w *HttpResponse) {
 			return
 		}
 	} else {
-		id, err = dp.AddDeposit(deposit)
+		_, err = dp.AddDeposit(deposit)
 		if w.responseForError(err) {
 			return
 		}
 	}
-
-	url := fmt.Sprintf("/depositEdit?id=%d", id)
-	w.Redirect(url, r)
+	w.Redirect("/static/ReloadOpenerThenClose.html", r)
 }
 
 func depositDelete(r *HttpRequest, w *HttpResponse) {
@@ -157,7 +172,8 @@ func Start() {
 	handleFunc("/depositEdit", depositEdit)
 	handleFunc("/depositUpdate", depositUpdate)
 	handleFunc("/depositDelete", depositDelete)
-
+	fs := http.FileServer(http.Dir("Webapp/static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		fmt.Printf("Error! 結束時發生錯誤: %s\n", err.Error())

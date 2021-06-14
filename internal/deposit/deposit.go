@@ -98,7 +98,8 @@ func (d *Deposit) toValuesOfQuery() []interface{} {
 }
 
 func QueryDeposits(memberId int) ([]*Deposit, error) {
-	sql := "SELECT " + db.ToColumnsString(columnsForQuery) + " FROM Deposit WHERE memberId=? ORDER BY bankId"
+	columns := db.ToColumnsString(columnsForQuery)
+	sql := fmt.Sprintf("SELECT %s FROM Deposit WHERE memberId=? ORDER BY bankId ASC, id DESC", columns)
 	rows, err := db.DB.Query(sql, memberId)
 	if err != nil {
 		return nil, err
@@ -192,4 +193,31 @@ func DeleteDeposit(id int) error {
 
 	_, err = pstmt.Exec(id)
 	return err
+}
+
+func QueryTotalTWD() (map[int]float64, float64, error) {
+	m := map[int]float64{}
+	sql := `SELECT d.memberId, sum(d.amount*c.exchangeRate) AS totalTWD
+            FROM Deposit d, CoinType c 
+            WHERE d.coinType=c.code
+            GROUP BY d.memberId`
+	rows, err := db.DB.Query(sql)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var memberId int
+	var memberTotal float64
+	var total float64 = 0
+
+	for rows.Next() {
+		err := rows.Scan(&memberId, &memberTotal)
+		if err != nil {
+			return nil, 0, err
+		}
+		m[memberId] = memberTotal
+		total += memberTotal
+	}
+	return m, total, nil
 }

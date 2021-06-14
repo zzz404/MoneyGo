@@ -9,6 +9,8 @@ import (
 type Member struct {
 	Id   int
 	Name string
+
+	TotalTWD float64
 }
 
 var Members []*Member
