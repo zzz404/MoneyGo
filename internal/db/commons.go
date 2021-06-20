@@ -52,3 +52,43 @@ func ToSettersString(columns []string) string {
 	}
 	return builder.String()
 }
+
+type SqlBuilder struct {
+	Columns    []string
+	Tables     []string
+	Conditions []string
+	Variables  []interface{}
+	OrderBys   []string
+}
+
+func (sb *SqlBuilder) AddTable(table string) *SqlBuilder {
+	sb.Tables = append(sb.Tables, table)
+	return sb
+}
+
+func (sb *SqlBuilder) SetColumns(columns []string) *SqlBuilder {
+	sb.Columns = columns
+	return sb
+}
+
+func (sb *SqlBuilder) AddCondition(cond string, variable interface{}) *SqlBuilder {
+	sb.Conditions = append(sb.Conditions, cond)
+	sb.Variables = append(sb.Variables, variable)
+	return sb
+}
+
+func (sb *SqlBuilder) AddOrderBy(orderby string) *SqlBuilder {
+	sb.OrderBys = append(sb.OrderBys, orderby)
+	return sb
+}
+
+func (sb *SqlBuilder) BuildSql() string {
+	sql := fmt.Sprintf("SELECT %s FROM %s", strings.Join(sb.Columns, ", "), strings.Join(sb.Tables, ", "))
+	if len(sb.Conditions) > 0 {
+		sql += " WHERE " + strings.Join(sb.Conditions, " AND ")
+	}
+	if len(sb.OrderBys) > 0 {
+		sql += " ORDER BY " + strings.Join(sb.OrderBys, ", ")
+	}
+	return sql
+}

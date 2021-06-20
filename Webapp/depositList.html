@@ -1,9 +1,6 @@
 <html>
   <head>
     <script>
-      function changeMember(memberId) {
-        location.href = `/depositList?memberId=${memberId}`;
-      }
     </script>
   </head>
   <body>
@@ -11,15 +8,56 @@
     <hr />
     <a target="_new" href="/depositEdit?memberId={{.memberId}}">新增</a>
     <hr />
-    <select onchange="changeMember(this.value);">
-      {{ range .members }}
-      <option value="{{ .Id }}" {{ if eq .Id $.memberId }}selected="selected" {{ end }}>{{ .Name }}</option>
-      {{ end }}
-    </select>
-    所有存單:
+    <form action="/depositList" method="GET">
+      <table width="100%">
+        <tr>
+          <td>
+            人員:
+            <select name="memberId" onchange="this.form.submit();">
+              <option value="0">請選擇</option>
+              {{ range .members }}
+              <option value="{{ .Id }}" {{ if eq .Id $.form.MemberId }}selected="selected" {{ end }}>{{ .Name }}</option>
+              {{ end }}
+            </select>
+          </td>
+          <td>
+            銀行:
+            <select name="bankId" onchange="this.form.submit();">
+              <option value="0">請選擇</option>
+              {{ range .banks }}
+              <option value="{{ .Id }}" {{ if eq .Id $.form.BankId }}selected="selected" {{ end }}>{{ .Name }}</option>
+              {{ end }}
+            </select>
+          </td>
+          <td>
+            種類:
+            <select name="typeCode" onchange="this.form.submit();">
+              <option value="0">請選擇</option>
+              {{ range .types }}
+              <option value="{{ .Code }}" {{ if eq .Code $.form.TypeCode }}selected="selected" {{ end }}>{{ .Name }}</option>
+              {{ end }}
+            </select>
+          </td>
+          <td>
+            幣別:
+            <select name="coinTypeCode" onchange="this.form.submit();">
+              <option value="">請選擇</option>
+              {{ range .coinTypes }}
+              <option value="{{ .Code }}" {{ if eq .Code $.form.CoinTypeCode }}selected="selected" {{ end }}>{{ .Name }}</option>
+              {{ end }}
+            </select>
+          </td>
+          <td>
+            <input type="button" onclick="location.href='/depositList';" value="查詢全部" />
+          </td>
+        </tr>
+      </table>
+    </form>
+    <br />
     共 {{.count}} 筆,    總金額 {{.totalTWD}}
     <table border="1" width="100%">
       <tr style="background-color:cyan;font-weight:bold;">
+        <td>人員</td>
         <td>銀行</td>
         <td>種類</td>
         <td>金額</td>
@@ -32,6 +70,9 @@
       </tr>
     {{range .deposits}}
       <tr>
+        <td>
+          {{.Member.Name}}
+        </td>
         <td>
           {{.Bank.Name}}
         </td>

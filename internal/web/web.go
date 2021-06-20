@@ -39,8 +39,37 @@ func memberList(r *HttpRequest, w *HttpResponse) {
 	w.responseForError(err)
 }
 
+func readParameters(f *dp.QueryForm, r *HttpRequest) error {
+	memberId, ok, err := r.getIntParameter("memberId", false)
+	if err != nil {
+		return err
+	}
+	if ok {
+		f.MemberId = memberId
+	}
+
+	f.BankId, _, err = r.getIntParameter("bankId", false)
+	if err != nil {
+		return err
+	}
+
+	f.TypeCode, _, err = r.getIntParameter("typeCode", false)
+	if err != nil {
+		return err
+	}
+
+	f.CoinTypeCode, _, err = r.getParameter("coinTypeCode", false)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func depositList(r *HttpRequest, w *HttpResponse) {
-	memberId, _, err := r.getIntParameter("memberId", true)
+	form := new(dp.QueryForm)
+	err := readParameters(form, r)
+
 	if w.responseForError(err) {
 		return
 	}
@@ -48,7 +77,7 @@ func depositList(r *HttpRequest, w *HttpResponse) {
 	if w.responseForError(err) {
 		return
 	}
-	deposits, err := dp.QueryDeposits(memberId)
+	deposits, err := dp.QueryDeposits(form)
 	if w.responseForError(err) {
 		return
 	}
@@ -59,11 +88,14 @@ func depositList(r *HttpRequest, w *HttpResponse) {
 	}
 
 	err = tpl.Execute(w, map[string]interface{}{
-		"memberId": memberId,
-		"members":  mb.Members,
-		"deposits": deposits,
-		"count":    len(deposits),
-		"totalTWD": fmt.Sprintf("%.2f", totalTWD),
+		"form":      form,
+		"members":   mb.Members,
+		"banks":     bk.Banks,
+		"coinTypes": coin.CoinTypes,
+		"types":     dp.DepositTypes,
+		"deposits":  deposits,
+		"count":     len(deposits),
+		"totalTWD":  fmt.Sprintf("%.2f", totalTWD),
 	})
 	w.responseForError(err)
 }
@@ -87,7 +119,7 @@ func depositEdit(r *HttpRequest, w *HttpResponse) {
 			return
 		}
 	} else {
-		memberId, _, err := r.getIntParameter("memberId", true)
+		memberId, _, err := r.getIntParameter("memberId", false)
 		if w.responseForError(err) {
 			return
 		}
@@ -96,6 +128,7 @@ func depositEdit(r *HttpRequest, w *HttpResponse) {
 
 	data := map[string]interface{}{
 		"deposit":      deposit,
+		"members":      mb.Members,
 		"banks":        bk.Banks,
 		"depositTypes": dp.DepositTypes,
 		"coinTypes":    coin.CoinTypes,
@@ -183,6 +216,8 @@ func Start() {
 	handleFunc("/depositDelete", depositDelete)
 	fs := http.FileServer(http.Dir("Webapp/static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
+
+	fmt.Println("\nhttp://localhost:8080/")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		fmt.Printf("Error! 結束時發生錯誤: %s\n", err.Error())

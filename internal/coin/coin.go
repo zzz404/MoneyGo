@@ -26,7 +26,7 @@ func init() {
 
 	m, err := queryExRateFromWeb()
 	if err != nil {
-		fmt.Printf("網路匯率失敗! 跳過匯率更新。錯誤訊息:  %s", err.Error())
+		fmt.Printf("網路讀取匯率失敗! 跳過匯率更新。錯誤訊息:  %s", err.Error())
 	} else {
 		err = updateExRateToDb(m)
 		if err != nil {
@@ -117,7 +117,7 @@ func queryExchangeRate(coinTypeCode string) (float64, error) {
 	url := "https://api.coinbase.com/v2/exchange-rates?currency=" + coinTypeCode
 	resp, err := http.Get(url)
 	if err != nil {
-		panic(err)
+		return 0, err
 	}
 	defer resp.Body.Close()
 

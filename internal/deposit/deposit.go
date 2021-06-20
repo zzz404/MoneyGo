@@ -109,10 +109,33 @@ func (d *Deposit) toValuesOfQuery() []interface{} {
 		&d.Id, &d.CreatedTime}
 }
 
-func QueryDeposits(memberId int) ([]*Deposit, error) {
-	columns := db.ToColumnsString(columnsForQuery)
-	sql := fmt.Sprintf("SELECT %s FROM Deposit WHERE memberId=? ORDER BY bankId ASC, id DESC", columns)
-	rows, err := db.DB.Query(sql, memberId)
+type QueryForm struct {
+	MemberId     int
+	BankId       int
+	TypeCode     int
+	CoinTypeCode string
+}
+
+func QueryDeposits(form *QueryForm) ([]*Deposit, error) {
+	sb := &db.SqlBuilder{}
+	sb.Columns = columnsForQuery
+	sb.AddTable("Deposit").SetColumns(columnsForQuery)
+	if form.MemberId > 0 {
+		sb.AddCondition("memberId=?", form.MemberId)
+	}
+	if form.BankId > 0 {
+		sb.AddCondition("bankId=?", form.BankId)
+	}
+	if form.TypeCode > 0 {
+		sb.AddCondition("type=?", form.TypeCode)
+	}
+	if form.CoinTypeCode != "" {
+		sb.AddCondition("coinType=?", form.CoinTypeCode)
+	}
+	sb.AddOrderBy("bankId ASC").AddOrderBy("id DESC")
+	sql := sb.BuildSql()
+
+	rows, err := db.DB.Query(sql, sb.Variables...)
 	if err != nil {
 		return nil, err
 	}
