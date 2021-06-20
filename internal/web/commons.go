@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -58,7 +59,6 @@ func (w *HttpResponse) responseForError(err error) bool {
 		fmt.Fprintf(w, "Error: %s", err.Error())
 		return true
 	}
-	w.Header()
 	return false
 }
 
@@ -117,4 +117,26 @@ func handleFunc(path string, fn func(r *HttpRequest, w *HttpResponse)) {
 		fn(rr, ww)
 	}
 	http.HandleFunc(path, f)
+}
+
+type JsonResult struct {
+	Success bool
+	Message string
+	Data    interface{}
+}
+
+func (w *HttpResponse) writeJson(success bool, message string, data interface{}) {
+	jsonResult := new(JsonResult)
+	jsonResult.Success = success
+	jsonResult.Data = data
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(jsonResult)
+}
+
+func (w *HttpResponse) responseJsonError(err error) bool {
+	if err != nil {
+		w.writeJson(false, err.Error(), nil)
+		return true
+	}
+	return false
 }

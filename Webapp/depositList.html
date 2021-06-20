@@ -1,6 +1,13 @@
 <html>
   <head>
+    <script src="/static/AjaxSender.js"></script>
     <script>
+      function doDelete(id) {
+        AjaxSender().httpPost('depositDelete', {id:id}, function(self) {
+          self.checkSuccess();
+          location.reload();
+        });
+      }
     </script>
   </head>
   <body>
@@ -100,7 +107,7 @@
         <td>
           <a href="depositEdit?id={{.Id}}" target="_new">修改</a>
           &nbsp;&nbsp;
-          <a href="depositDelete?id={{.Id}}&memberId={{$.member.Id}}">刪除</a>
+          <a href="javascript:doDelete({{.Id}})">刪除</a>
         </td>
       </tr>
     {{end}}

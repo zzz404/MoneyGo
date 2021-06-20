@@ -5,7 +5,10 @@
         <tr>
           <td style="padding-right: 20px;">成員</td>
           <td>
-            <select name="bankId" required="true">
+            {{ if .id }}
+            <input type="hidden" name="id" value="{{.id}}" />
+            {{ end }}
+            <select name="memberId" required="true">
               <option value="">選擇人員</option>
               {{ range .members }}
               <option value="{{ .Id }}" {{ if eq .Id $.deposit.MemberId }}selected="selected" {{ end }}>{{ .Name }}</option>
@@ -53,9 +56,9 @@
         <tr>
           <td></td>
           <td style="padding-top: 5px;padding-left: 10px;">
-            <input type="submit" />
+            <input type="submit" value="送出" />
             &nbsp;
-            <input type="reset" />
+            <input type="reset" value="重設" />
           </td>
         </tr>
       </table>

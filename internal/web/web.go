@@ -193,19 +193,15 @@ func depositUpdate(r *HttpRequest, w *HttpResponse) {
 
 func depositDelete(r *HttpRequest, w *HttpResponse) {
 	id, _, err := r.getIntParameter("id", true)
-	if w.responseForError(err) {
+	if w.responseJsonError(err) {
 		return
 	}
-	memberId, _, err := r.getIntParameter("memberId", true)
-	if w.responseForError(err) {
-		return
-	}
+
 	err = dp.DeleteDeposit(id)
-	if w.responseForError(err) {
+	if w.responseJsonError(err) {
 		return
 	}
-	url := fmt.Sprintf("/depositList?memberId=%d", memberId)
-	w.Redirect(url, r)
+	w.writeJson(true, "", nil)
 }
 
 func Start() {
