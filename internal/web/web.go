@@ -123,7 +123,19 @@ func depositEdit(r *HttpRequest, w *HttpResponse) {
 		if w.responseForError(err) {
 			return
 		}
-		deposit = &dp.Deposit{MemberId: memberId}
+		bankId, _, err := r.getIntParameter("bankId", false)
+		if w.responseForError(err) {
+			return
+		}
+		typeCode, _, err := r.getIntParameter("typeCode", false)
+		if w.responseForError(err) {
+			return
+		}
+		coinTypeCode, _, err := r.getParameter("coinTypeCode", false)
+		if w.responseForError(err) {
+			return
+		}
+		deposit = &dp.Deposit{MemberId: memberId, BankId: bankId, TypeCode: typeCode, CoinTypeCode: coinTypeCode}
 	}
 
 	data := map[string]interface{}{
