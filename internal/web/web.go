@@ -10,8 +10,8 @@ import (
 	mb "github.com/zzz404/MoneyGo/internal/member"
 )
 
-func memberList(r *HttpRequest, w *HttpResponse) {
-	tpl, err := getTemplate("/memberList.html")
+func index(r *HttpRequest, w *HttpResponse) {
+	tpl, err := getTemplate("/index.html")
 	if w.responseForError(err) {
 		return
 	}
@@ -142,7 +142,7 @@ func depositEdit(r *HttpRequest, w *HttpResponse) {
 		"deposit":      deposit,
 		"members":      mb.Members,
 		"banks":        bk.Banks,
-		"bankAccounts": bk.BankIdAccountsMapJson,
+		"bankAccounts": bk.BankAccounts,
 		"depositTypes": dp.DepositTypes,
 		"coinTypes":    coin.CoinTypes,
 	}
@@ -171,6 +171,11 @@ func depositUpdate(r *HttpRequest, w *HttpResponse) {
 	}
 
 	deposit.BankId, _, err = r.getIntParameter("bankId", true)
+	if w.responseForError(err) {
+		return
+	}
+
+	deposit.BankAccount, _, err = r.getParameter("bankAccount", true)
 	if w.responseForError(err) {
 		return
 	}
@@ -217,8 +222,73 @@ func depositDelete(r *HttpRequest, w *HttpResponse) {
 	w.writeJson(true, "", nil)
 }
 
+func accountList(r *HttpRequest, w *HttpResponse) {
+	tpl, err := getTemplate("/accountList.html")
+	if w.responseForError(err) {
+		return
+	}
+
+	err = tpl.Execute(w, map[string]interface{}{
+		"accounts": bk.BankAccounts,
+	})
+	w.responseForError(err)
+}
+
+func accountEdit(r *HttpRequest, w *HttpResponse) {
+	tpl, err := getTemplate("/accountEdit.html")
+	if w.responseForError(err) {
+		return
+	}
+
+	data := map[string]interface{}{
+		"banks": bk.Banks,
+	}
+	err = tpl.Execute(w, data)
+	w.responseForError(err)
+}
+
+func accountAdd(r *HttpRequest, w *HttpResponse) {
+	account := new(bk.BankAccount)
+	var err error
+
+	account.BankId, _, err = r.getIntParameter("bankId", true)
+	if w.responseForError(err) {
+		return
+	}
+
+	account.Account, _, err = r.getParameter("account", true)
+	if w.responseForError(err) {
+		return
+	}
+
+	err = bk.AddBankAccount(account)
+	if w.responseForError(err) {
+		return
+	}
+
+	w.Redirect("/static/ReloadOpenerThenClose.html", r)
+}
+
+func accountDelete(r *HttpRequest, w *HttpResponse) {
+	account, _, err := r.getParameter("account", true)
+	if w.responseJsonError(err) {
+		return
+	}
+
+	err = bk.DeleteBankAccount(account)
+	if w.responseJsonError(err) {
+		return
+	}
+
+	w.writeJson(true, "", nil)
+}
+
 func Start() {
-	handleFunc("/", memberList)
+	handleFunc("/", index)
+	handleFunc("/accountList", accountList)
+	handleFunc("/accountEdit", accountEdit)
+	handleFunc("/accountAdd", accountAdd)
+	handleFunc("/accountDelete", accountDelete)
 	handleFunc("/depositList", depositList)
 	handleFunc("/depositEdit", depositEdit)
 	handleFunc("/depositUpdate", depositUpdate)

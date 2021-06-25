@@ -70,3 +70,9 @@ func CopyFile(srcPath, destPath string) error {
 	_, err = io.Copy(destination, source)
 	return err
 }
+
+func Must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}

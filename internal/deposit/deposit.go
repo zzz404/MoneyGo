@@ -1,6 +1,7 @@
 package deposit
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -103,11 +104,18 @@ func (d *Deposit) toValuesOfInsert() []interface{} {
 	return append(d.toValuesOfUpdate(), d.MemberId, d.ExRateWhenCreated)
 }
 
-func (d *Deposit) toValuesOfQuery() []interface{} {
-	return []interface{}{
-		&d.BankId, &d.TypeCode, &d.Amount, &d.CoinTypeCode,
+func (d *Deposit) loadFromRows(rows *sql.Rows) error {
+	var bankAccount sql.NullString
+	err := rows.Scan(&d.BankId, &bankAccount, &d.TypeCode, &d.Amount, &d.CoinTypeCode,
 		&d.MemberId, &d.ExRateWhenCreated,
-		&d.Id, &d.CreatedTime}
+		&d.Id, &d.CreatedTime)
+	if err != nil {
+		return err
+	}
+	if bankAccount.Valid {
+		d.BankAccount = bankAccount.String
+	}
+	return nil
 }
 
 type QueryForm struct {
@@ -145,8 +153,7 @@ func QueryDeposits(form *QueryForm) ([]*Deposit, error) {
 	var deposits []*Deposit
 	for rows.Next() {
 		deposit := &Deposit{}
-
-		err := rows.Scan(deposit.toValuesOfQuery()...)
+		err := deposit.loadFromRows(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -171,7 +178,7 @@ func GetDeposit(id int) (*Deposit, error) {
 		} else {
 			return nil, fmt.Errorf("Deposit id %d 不只一個!?", id)
 		}
-		err := rows.Scan(deposit.toValuesOfQuery()...)
+		err := deposit.loadFromRows(rows)
 		if err != nil {
 			return nil, err
 		}

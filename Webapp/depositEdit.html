@@ -1,4 +1,44 @@
 <html>
+  <script>
+    var bankAccounts = [
+    {{ range .bankAccounts }}
+      [{{ .BankId }}, {{ .Account }}],
+    {{ end }}
+    ];
+
+    var bankId_accounts = {};
+    bankAccounts.forEach(ba=>{
+      var bankId = ba[0];
+      var account = ba[1];
+      if(!bankId_accounts[bankId]) {
+        bankId_accounts[bankId] = [account]
+      } else {
+        bankId_accounts[bankId].push(account);
+      }
+    });
+
+    function changeBank() {
+      var accountSelector = document.forms[0].bankAccount;
+      var opts = accountSelector.options;
+      for (var i = opts.length - 1; i >= 1; i--) {
+        opts[i] = null;
+      }
+
+      var bankId = document.forms[0].bankId.value;
+      var accounts = bankId_accounts[bankId];
+      accounts.forEach(account=>{
+        var oOption = document.createElement("option");
+        oOption.value = account;
+        oOption.text = account;
+        if(account=='{{.deposit.BankAccount}}') {
+          oOption.selected = true;
+        }
+        opts.add(oOption);
+      });
+    }
+
+    window.onload = changeBank;
+  </script>
   <body>
     <form action="depositUpdate" method="POST">
       <table>
@@ -19,11 +59,19 @@
         <tr>
           <td>銀行</td>
           <td>
-            <select name="bankId" required="true">
+            <select id="bankId" name="bankId" required="true" onchange="changeBank()">
               <option value="">選擇銀行</option>
             {{ range .banks }}
               <option value="{{ .Id }}"{{ if eq .Id $.deposit.BankId }}selected="selected" {{ end }}>{{ .Name }}</option>
             {{ end }}
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td>帳號</td>
+          <td>
+            <select id="bankAccount" name="bankAccount" required="true">
+              <option value="">選擇帳號</option>
             </select>
           </td>
         </tr>

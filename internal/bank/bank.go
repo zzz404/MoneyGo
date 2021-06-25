@@ -1,12 +1,11 @@
 package bank
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
-	"strconv"
+	"strings"
 
 	"github.com/zzz404/MoneyGo/internal/db"
+	"github.com/zzz404/MoneyGo/internal/utils"
 )
 
 type Bank struct {
@@ -47,67 +46,73 @@ func GetBank(id int) *Bank {
 	panic(fmt.Errorf("BankId %d 不存在", id))
 }
 
-var bankIdAccountsMap = map[string]([]string){}
-var BankIdAccountsMapJson string
-
-func addBankAccountToCache(bankId int, account string) {
-	bankIdString := strconv.Itoa(bankId)
-	accounts := bankIdAccountsMap[bankIdString]
-	bankIdAccountsMap[bankIdString] = append(accounts, account)
+type BankAccount struct {
+	BankId  int
+	Account string
 }
 
+func (a1 *BankAccount) Compare(a2 *BankAccount) int {
+	diff := a1.BankId - a2.BankId
+	if diff > 0 {
+		return 1
+	} else if diff < 0 {
+		return -1
+	} else {
+		return strings.Compare(a1.Account, a2.Account)
+	}
+}
+
+func (a *BankAccount) BankName() string {
+	return GetBank(a.BankId).Name
+}
+
+var BankAccounts []*BankAccount
+
 func loadBankAccounts() {
-	rows, err := db.DB.Query("SELECT bankId, account FROM BankAccount")
+	rows, err := db.DB.Query("SELECT bankId, account FROM BankAccount ORDER BY bankId, account")
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var bankId int
-		var account string
-		err = rows.Scan(&bankId, &account)
-		if err != nil {
-			panic(err)
-		}
-		addBankAccountToCache(bankId, account)
+		a := &BankAccount{}
+		utils.Must(rows.Scan(&a.BankId, &a.Account))
+		BankAccounts = append(BankAccounts, a)
 	}
-
-	jsonByte, err := json.Marshal(bankIdAccountsMap)
-	if err != nil {
-		panic(err)
-	}
-	BankIdAccountsMapJson = string(jsonByte)
 }
 
-func AddBankAccount(account string, bankId int) error {
-	if bankId <= 0 || account == "" {
-		return errors.New("BankAccount 不能有空值")
-	}
-
+func AddBankAccount(account *BankAccount) error {
 	sql := "INSERT INTO BankAccount (account, bankId) VALUES (?, ?)"
-	_, err := db.ExecuteSql(sql, account, bankId)
+	_, err := db.ExecuteSql(sql, account.Account, account.BankId)
 	if err != nil {
 		return err
 	}
-	addBankAccountToCache(bankId, account)
 
+	if len(BankAccounts) == 0 {
+		BankAccounts = append(BankAccounts, account)
+	} else {
+		for i, a := range BankAccounts {
+			if account.Compare(a) < 0 {
+				bas := append(BankAccounts[:i], account)
+				BankAccounts = append(bas, BankAccounts[i:]...)
+				break
+			}
+		}
+	}
 	return nil
 }
 
-func DeleteBankAccount(account string, bankId int) error {
+func DeleteBankAccount(account string) error {
 	sql := "DELETE FROM BankAccount WHERE account=?"
 	_, err := db.ExecuteSql(sql, account)
 	if err != nil {
 		return err
 	}
 
-	bankIdString := strconv.Itoa(bankId)
-	accounts := bankIdAccountsMap[bankIdString]
-
-	for i, a := range accounts {
-		if a == account {
-			bankIdAccountsMap[bankIdString] = append(accounts[:i], accounts[i+1:]...)
+	for i, a := range BankAccounts {
+		if a.Account == account {
+			BankAccounts = append(BankAccounts[:i], BankAccounts[i+1:]...)
 			break
 		}
 	}
