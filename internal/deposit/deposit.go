@@ -34,6 +34,7 @@ type Deposit struct {
 	Id                int
 	MemberId          int
 	BankId            int
+	BankAccount       string
 	TypeCode          int
 	Amount            float64
 	CoinTypeCode      string
@@ -90,12 +91,12 @@ func (d *Deposit) TwAmountString() string {
 	return fmt.Sprintf("%.2f", d.TwAmount())
 }
 
-var columnsForUpdate = []string{"bankId", "type", "amount", "coinType"}
+var columnsForUpdate = []string{"bankId", "bankAccount", "type", "amount", "coinType"}
 var columnsForInsert = append(columnsForUpdate, "memberId", "exRateWhenCreated")
 var columnsForQuery = append(columnsForInsert, "id", "createdTime")
 
 func (d *Deposit) toValuesOfUpdate() []interface{} {
-	return []interface{}{d.BankId, d.TypeCode, d.Amount, d.CoinTypeCode}
+	return []interface{}{d.BankId, d.BankAccount, d.TypeCode, d.Amount, d.CoinTypeCode}
 }
 
 func (d *Deposit) toValuesOfInsert() []interface{} {
@@ -185,14 +186,9 @@ func AddDeposit(deposit *Deposit) (int, error) {
 	}
 	sql := fmt.Sprintf("INSERT INTO Deposit (%s) VALUES (%s)",
 		db.ToColumnsString(columnsForInsert), params)
-	pstmt, err := db.DB.Prepare(sql)
-	if err != nil {
-		return 0, err
-	}
-	defer pstmt.Close()
 
 	deposit.ExRateWhenCreated = deposit.CoinType().ExRate
-	result, err := pstmt.Exec(deposit.toValuesOfInsert()...)
+	result, err := db.ExecuteSql(sql, deposit.toValuesOfInsert()...)
 	if err != nil {
 		return 0, err
 	}
@@ -204,29 +200,15 @@ func AddDeposit(deposit *Deposit) (int, error) {
 func UpdateDeposit(deposit *Deposit) error {
 	sql := fmt.Sprintf("UPDATE Deposit SET %s WHERE id=?",
 		db.ToSettersString(columnsForUpdate))
-
-	pstmt, err := db.DB.Prepare(sql)
-	if err != nil {
-		return err
-	}
-	defer pstmt.Close()
-
 	values := append(deposit.toValuesOfUpdate(), deposit.Id)
 
-	_, err = pstmt.Exec(values...)
+	_, err := db.ExecuteSql(sql, values...)
 	return err
 }
 
 func DeleteDeposit(id int) error {
 	sql := "DELETE FROM Deposit WHERE id=?"
-
-	pstmt, err := db.DB.Prepare(sql)
-	if err != nil {
-		return nil
-	}
-	defer pstmt.Close()
-
-	_, err = pstmt.Exec(id)
+	_, err := db.ExecuteSql(sql, id)
 	return err
 }
 

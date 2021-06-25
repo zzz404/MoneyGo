@@ -5,28 +5,47 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
+
+	"github.com/zzz404/MoneyGo/internal/utils"
 )
 
 var DB *sql.DB
 
 func init() {
-	dbPath, err := ioutil.ReadFile("cfg/db-path.txt")
-	assertSucc(err)
-	db1, err := sql.Open("sqlite3", string(dbPath))
-	assertSucc(err)
-	DB = db1
-}
+	bt, err := ioutil.ReadFile("cfg/db-path.txt")
+	if err != nil {
+		panic(err)
+	}
+	dbPath := string(bt)
 
-func assertSucc(err error) {
+	if err := copy_bak(dbPath); err != nil {
+		panic(err)
+	}
+
+	DB, err = sql.Open("sqlite3", dbPath)
 	if err != nil {
 		panic(err)
 	}
 }
 
+func copy_bak(dbPath string) error {
+	dir := dbPath + ".bak"
+	if err := utils.AssertDirExists(dir); err != nil {
+		return err
+	}
+
+	timestamp := utils.GetTimeMillis()
+	bakFileName := fmt.Sprintf("%s.%d", filepath.Base(dbPath), timestamp)
+	bakPath := fmt.Sprintf("%s/%s", dir, bakFileName)
+
+	return utils.CopyFile(dbPath, bakPath)
+}
+
 func ToSqlParams(n int) (string, error) {
 	if n <= 0 {
-		return "", errors.New("n 必須大於 0!")
+		return "", errors.New("n 必須大於 0")
 	} else if n == 1 {
 		return "?", nil
 	} else {
@@ -91,4 +110,14 @@ func (sb *SqlBuilder) BuildSql() string {
 		sql += " ORDER BY " + strings.Join(sb.OrderBys, ", ")
 	}
 	return sql
+}
+
+func ExecuteSql(sql string, args ...interface{}) (sql.Result, error) {
+	pstmt, err := DB.Prepare(sql)
+	if err != nil {
+		return nil, err
+	}
+	defer pstmt.Close()
+
+	return pstmt.Exec(args...)
 }

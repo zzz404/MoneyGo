@@ -1,0 +1,16 @@
+<html>
+  <body>
+    <a href="/accountList">帳號維護</a>
+    <hr />
+    <a href="/depositList?memberId={{.Id}}">存單維護</a> ({{.totalTWDString}})
+    <ul>
+    {{range .members}}
+      <li>
+        <a href="/depositList?memberId={{.Id}}">{{.Name}}</a>
+        ({{.TotalTWDString}})
+      </li>
+    {{end}}
+    </ul>
+    <hr />
+  </body>
+</html>

@@ -142,6 +142,7 @@ func depositEdit(r *HttpRequest, w *HttpResponse) {
 		"deposit":      deposit,
 		"members":      mb.Members,
 		"banks":        bk.Banks,
+		"bankAccounts": bk.BankIdAccountsMapJson,
 		"depositTypes": dp.DepositTypes,
 		"coinTypes":    coin.CoinTypes,
 	}

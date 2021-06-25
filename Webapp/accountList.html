@@ -1,0 +1,39 @@
+<html>
+  <head>
+    <script src="/static/AjaxSender.js"></script>
+    <script>
+      function doDelete(account) {
+        AjaxSender().httpPost('accountDelete', {account: account}, function(self) {
+          self.checkSuccess();
+          location.reload();
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <a href="/">首頁</a>
+    <hr />
+    <a target="_new" href="/accountEdit">新增</a>
+    <hr />
+    <table border="1" width="100%">
+      <tr style="background-color:cyan;font-weight:bold;">
+        <td>銀行</td>
+        <td>帳號</td>
+        <td>指令</td>
+      </tr>
+    {{range .accounts}}
+      <tr>
+        <td>
+          {{.BankName}}
+        </td>
+        <td>
+          {{.Account}}
+        </td>
+        <td>
+          <a href="javascript:doDelete('{{.Account}}')">刪除</a>
+        </td>
+      </tr>
+    {{end}}
+    </table>
+  </body>
+</html>
