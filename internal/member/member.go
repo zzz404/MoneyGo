@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/zzz404/MoneyGo/internal/db"
+	"github.com/zzz404/MoneyGo/internal/utils"
 )
 
 type Member struct {
@@ -24,7 +25,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	defer rows.Close()
+	defer utils.Must(rows.Close())
 
 	for rows.Next() {
 		member := Member{}

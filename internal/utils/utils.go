@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -48,27 +49,31 @@ func AssertFileNotExists(path string) error {
 	return nil
 }
 
-func CopyFile(srcPath, destPath string) error {
-	if err := AssertFileExists(srcPath); err != nil {
-		return err
+func CopyFile(srcPath, destPath string) (err error) {
+	if err = AssertFileExists(srcPath); err != nil {
+		return
 	}
-	if err := AssertFileNotExists(destPath); err != nil {
-		return err
+	if err = AssertFileNotExists(destPath); err != nil {
+		return
 	}
 	source, err := os.Open(srcPath)
 	if err != nil {
-		return err
+		return
 	}
-	defer source.Close()
+	defer func() {
+		err = CombineError(err, source.Close())
+	}()
 
 	destination, err := os.Create(destPath)
 	if err != nil {
-		return err
+		return
 	}
-	defer destination.Close()
+	defer func() {
+		err = CombineError(err, destination.Close())
+	}()
 
 	_, err = io.Copy(destination, source)
-	return err
+	return
 }
 
 func Must(err error) {
@@ -79,4 +84,14 @@ func Must(err error) {
 
 func FormatDate(t time.Time) string {
 	return t.Format("2006-01-02 15:04:05")
+}
+
+func CombineError(err1 error, err2 error) error {
+	if err1 == nil {
+		return err2
+	} else if err2 == nil {
+		return err1
+	} else {
+		return errors.New(err1.Error() + ";\n" + err2.Error())
+	}
 }

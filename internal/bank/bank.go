@@ -25,14 +25,11 @@ func loadBanks() {
 	if err != nil {
 		panic(err)
 	}
-	defer rows.Close()
+	defer utils.Must(rows.Close())
 
 	for rows.Next() {
 		bank := Bank{}
-		err = rows.Scan(&bank.Id, &bank.Name)
-		if err != nil {
-			panic(err)
-		}
+		utils.Must(rows.Scan(&bank.Id, &bank.Name))
 		Banks = append(Banks, &bank)
 	}
 }
@@ -73,7 +70,7 @@ func loadBankAccounts() {
 	if err != nil {
 		panic(err)
 	}
-	defer rows.Close()
+	defer utils.Must(rows.Close())
 
 	for rows.Next() {
 		a := &BankAccount{}
@@ -84,7 +81,7 @@ func loadBankAccounts() {
 
 func AddBankAccount(account *BankAccount) error {
 	sql := "INSERT INTO BankAccount (account, bankId) VALUES (?, ?)"
-	_, err := db.ExecuteSql(sql, account.Account, account.BankId)
+	_, err := db.DB.Exec(sql, account.Account, account.BankId)
 	if err != nil {
 		return err
 	}
@@ -105,7 +102,7 @@ func AddBankAccount(account *BankAccount) error {
 
 func DeleteBankAccount(account string) error {
 	sql := "DELETE FROM BankAccount WHERE account=?"
-	_, err := db.ExecuteSql(sql, account)
+	_, err := db.DB.Exec(sql, account)
 	if err != nil {
 		return err
 	}

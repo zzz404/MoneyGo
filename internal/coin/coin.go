@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/zzz404/MoneyGo/internal/db"
+	"github.com/zzz404/MoneyGo/internal/utils"
 )
 
 type CoinType struct {
@@ -45,56 +46,56 @@ func updateExRateToCache(m map[string]float64) {
 	}
 }
 
-func updateExRateToDb(m map[string]float64) error {
+func updateExRateToDb(m map[string]float64) (err error) {
 	tx, err := db.DB.Begin()
 	if err != nil {
-		return err
+		return
 	}
-	defer tx.Rollback()
+	defer func() {
+		err = db.CommitOrRollback(tx, err)
+	}()
 
 	sql := "UPDATE CoinType SET exchangeRate=? WHERE code=?"
 	pstmt, err := tx.Prepare(sql)
 	if err != nil {
-		return err
+		return
 	}
-	defer pstmt.Close()
+	defer func() {
+		err = utils.CombineError(err, pstmt.Close())
+	}()
 
 	for _, coinType := range CoinTypes {
 		rate, ok := m[coinType.Code]
 		if ok {
 			_, err = pstmt.Exec(rate, coinType.Code)
 			if err != nil {
-				tx.Rollback()
-				return err
+				return
 			}
 		}
 	}
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return
 }
 
 var CoinTypes []*CoinType
 
-func loadCoinTypes() error {
+func loadCoinTypes() (err error) {
 	rows, err := db.DB.Query("SELECT code, name, exchangeRate FROM CoinType")
 	if err != nil {
-		return err
+		return
 	}
-	defer rows.Close()
+	defer func() {
+		err = utils.CombineError(err, rows.Close())
+	}()
 
 	for rows.Next() {
 		coinType := CoinType{}
 		err = rows.Scan(&coinType.Code, &coinType.Name, &coinType.ExRate)
 		if err != nil {
-			return err
+			return
 		}
 		CoinTypes = append(CoinTypes, &coinType)
 	}
-	return nil
+	return
 }
 
 func queryExRateFromWeb() (map[string]float64, error) {
@@ -113,13 +114,15 @@ func queryExRateFromWeb() (map[string]float64, error) {
 	return result, nil
 }
 
-func queryExchangeRate(coinTypeCode string) (float64, error) {
+func queryExchangeRate(coinTypeCode string) (exRate float64, err error) {
 	url := "https://api.coinbase.com/v2/exchange-rates?currency=" + coinTypeCode
 	resp, err := http.Get(url)
 	if err != nil {
-		return 0, err
+		return
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err = utils.CombineError(err, resp.Body.Close())
+	}()
 
 	var result = new(map[string]interface{})
 	if resp.StatusCode != http.StatusOK {
@@ -127,22 +130,18 @@ func queryExchangeRate(coinTypeCode string) (float64, error) {
 	}
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return 0, err
+		return
 	}
 	err = json.Unmarshal(bodyBytes, &result)
 	if err != nil {
-		return 0, err
+		return
 	}
 	data := (*result)["data"].(map[string]interface{})
 	rates := data["rates"].(map[string]interface{})
 	exRateStr := rates["TWD"].(string)
 
-	exRate, err := strconv.ParseFloat(exRateStr, 64)
-	if err != nil {
-		return 0, err
-	}
-
-	return exRate, nil
+	exRate, err = strconv.ParseFloat(exRateStr, 64)
+	return
 }
 
 func GetCoinTypeByCode(code string) *CoinType {

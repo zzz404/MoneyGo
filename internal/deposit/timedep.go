@@ -28,12 +28,16 @@ func GetInterestRateTypeByCode(code int) *InterestRateType {
 }
 
 type TimeDeposit struct {
-	deposit      *Deposit
+	*Deposit
 	StartDate    time.Time
 	EndDate      time.Time
 	InterestRate float64
 	RateTypeCode int
 	AutoSaveNew  int
+}
+
+func NewTimeDeposit() *TimeDeposit {
+	return &TimeDeposit{Deposit: new(Deposit)}
 }
 
 func (td *TimeDeposit) StartDateString() string {
@@ -57,5 +61,5 @@ func (td *TimeDeposit) AutoSaveNewString() string {
 }
 
 func (td *TimeDeposit) EspectedYearIncome() float64 {
-	return td.deposit.TwAmount() * td.InterestRate
+	return td.TwAmount() * td.InterestRate
 }

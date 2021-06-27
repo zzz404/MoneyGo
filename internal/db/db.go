@@ -92,7 +92,9 @@ func (sb *SqlBuilder) SetColumns(columns []string) *SqlBuilder {
 
 func (sb *SqlBuilder) AddCondition(cond string, variable interface{}) *SqlBuilder {
 	sb.Conditions = append(sb.Conditions, cond)
-	sb.Variables = append(sb.Variables, variable)
+	if variable != nil {
+		sb.Variables = append(sb.Variables, variable)
+	}
 	return sb
 }
 
@@ -112,81 +114,20 @@ func (sb *SqlBuilder) BuildSql() string {
 	return sql
 }
 
-type QueryAble interface {
+func CommitOrRollback(tx *sql.Tx, err error) error {
+	if tx == nil {
+		return err
+	}
+	if err == nil {
+		return tx.Commit()
+	} else {
+		return utils.CombineError(err, tx.Rollback())
+	}
+}
+
+type SqlExecuter interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 	Prepare(query string) (*sql.Stmt, error)
 	// Query(query string, args ...interface{}) (*sql.Rows, error)
 	// QueryRow(query string, args ...interface{}) *sql.Row
-}
-
-func ExecuteSql(sql string, args ...interface{}) (sql.Result, error) {
-	pstmt, err := DB.Prepare(sql)
-	if err != nil {
-		return nil, err
-	}
-	defer pstmt.Close()
-
-	return pstmt.Exec(args...)
-}
-
-type SqlExecuter struct {
-	tx *sql.Tx
-}
-
-func (exe *SqlExecuter) StartTx() error {
-	var err error
-	if exe.tx != nil {
-		err = exe.tx.Rollback()
-		if err != nil {
-			return err
-		}
-	}
-	exe.tx, err = DB.Begin()
-	return err
-}
-
-func (exe *SqlExecuter) Commit() error {
-	if exe.tx == nil {
-		return nil
-	}
-	err := exe.tx.Commit()
-	if err == nil {
-		exe.tx = nil
-	}
-	return err
-}
-
-func (exe *SqlExecuter) Rollback() error {
-	if exe.tx == nil {
-		return nil
-	}
-	err := exe.tx.Rollback()
-	if err == nil {
-		exe.tx = nil
-	}
-	return err
-}
-
-func (exe *SqlExecuter) Close() error {
-	if exe.tx != nil {
-		return exe.tx.Rollback()
-	}
-	return nil
-}
-
-func (exe *SqlExecuter) ExecuteSql(sql_of_update string, args ...interface{}) (sql.Result, error) {
-	var pstmt *sql.Stmt
-	var err error
-
-	if exe.tx == nil {
-		pstmt, err = DB.Prepare(sql_of_update)
-	} else {
-		pstmt, err = exe.tx.Prepare(sql_of_update)
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer pstmt.Close()
-
-	return pstmt.Exec(args...)
 }

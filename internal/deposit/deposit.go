@@ -126,22 +126,28 @@ type QueryForm struct {
 	CoinTypeCode string
 }
 
+func (f *QueryForm) SetToSqlBuilder(sb *db.SqlBuilder, prefix string) {
+	if prefix != "" {
+		prefix = prefix + "."
+	}
+	if f.MemberId > 0 {
+		sb.AddCondition(prefix+"memberId=?", f.MemberId)
+	}
+	if f.BankId > 0 {
+		sb.AddCondition(prefix+"bankId=?", f.BankId)
+	}
+	if f.TypeCode > 0 {
+		sb.AddCondition(prefix+"type=?", f.TypeCode)
+	}
+	if f.CoinTypeCode != "" {
+		sb.AddCondition(prefix+"coinType=?", f.CoinTypeCode)
+	}
+}
+
 func QueryDeposits(form *QueryForm) ([]*Deposit, error) {
 	sb := &db.SqlBuilder{}
-	sb.Columns = columnsForQuery
 	sb.AddTable("Deposit").SetColumns(columnsForQuery)
-	if form.MemberId > 0 {
-		sb.AddCondition("memberId=?", form.MemberId)
-	}
-	if form.BankId > 0 {
-		sb.AddCondition("bankId=?", form.BankId)
-	}
-	if form.TypeCode > 0 {
-		sb.AddCondition("type=?", form.TypeCode)
-	}
-	if form.CoinTypeCode != "" {
-		sb.AddCondition("coinType=?", form.CoinTypeCode)
-	}
+	form.SetToSqlBuilder(sb, "")
 	sb.AddOrderBy("bankId ASC").AddOrderBy("id DESC")
 	sql := sb.BuildSql()
 
@@ -149,7 +155,9 @@ func QueryDeposits(form *QueryForm) ([]*Deposit, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		err = utils.CombineError(err, rows.Close())
+	}()
 
 	var deposits []*Deposit
 	for rows.Next() {
@@ -164,15 +172,16 @@ func QueryDeposits(form *QueryForm) ([]*Deposit, error) {
 	return deposits, nil
 }
 
-func GetDeposit(id int) (*Deposit, error) {
+func GetDeposit(id int) (deposit *Deposit, err error) {
 	sql := "SELECT " + db.ToColumnsString(columnsForQuery) + " FROM Deposit WHERE id=?"
 	rows, err := db.DB.Query(sql, id)
 	if err != nil {
-		return nil, err
+		return
 	}
-	defer rows.Close()
+	defer func() {
+		err = utils.CombineError(err, rows.Close())
+	}()
 
-	var deposit *Deposit = nil
 	for rows.Next() {
 		if deposit == nil {
 			deposit = &Deposit{}
@@ -188,12 +197,10 @@ func GetDeposit(id int) (*Deposit, error) {
 }
 
 func AddDeposit(deposit *Deposit) (int, error) {
-	exe := &db.SqlExecuter{}
-	defer exe.Close()
-	return addDeposit(deposit, exe)
+	return addDeposit(deposit, db.DB)
 }
 
-func addDeposit(td *Deposit, exe *db.SqlExecuter) (int, error) {
+func addDeposit(td *Deposit, exe db.SqlExecuter) (int, error) {
 	params, err := db.ToSqlParams(len(columnsForInsert))
 	if err != nil {
 		return 0, err
@@ -201,7 +208,7 @@ func addDeposit(td *Deposit, exe *db.SqlExecuter) (int, error) {
 	sql := fmt.Sprintf("INSERT INTO Deposit (%s) VALUES (%s)",
 		db.ToColumnsString(columnsForInsert), params)
 
-	result, err := exe.ExecuteSql(sql, td.toValuesOfInsert()...)
+	result, err := exe.Exec(sql, td.toValuesOfInsert()...)
 	if err != nil {
 		return 0, err
 	}
@@ -210,23 +217,21 @@ func addDeposit(td *Deposit, exe *db.SqlExecuter) (int, error) {
 }
 
 func UpdateDeposit(deposit *Deposit) error {
-	exe := &db.SqlExecuter{}
-	defer exe.Close()
-	return updateDeposit(deposit, exe)
+	return updateDeposit(deposit, db.DB)
 }
 
-func updateDeposit(deposit *Deposit, exe *db.SqlExecuter) error {
+func updateDeposit(deposit *Deposit, exe db.SqlExecuter) error {
 	sql := fmt.Sprintf("UPDATE Deposit SET %s WHERE id=?",
 		db.ToSettersString(columnsForUpdate))
 	values := append(deposit.toValuesOfUpdate(), deposit.Id)
 
-	_, err := exe.ExecuteSql(sql, values...)
+	_, err := exe.Exec(sql, values...)
 	return err
 }
 
 func DeleteDeposit(id int) error {
 	sql := "DELETE FROM Deposit WHERE id=?"
-	_, err := db.ExecuteSql(sql, id)
+	_, err := db.DB.Exec(sql, id)
 	return err
 }
 
@@ -240,7 +245,9 @@ func QueryTotalTWD() (map[int]float64, float64, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	defer rows.Close()
+	defer func() {
+		err = utils.CombineError(err, rows.Close())
+	}()
 
 	var memberId int
 	var memberTotal float64
