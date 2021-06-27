@@ -12,7 +12,7 @@ type timeDepositService struct {
 	columns []string
 }
 
-var Service = &timeDepositService{
+var TimeDepService = &timeDepositService{
 	columns: []string{"startDate", "endDate", "interestRate", "rateTypeCode", "autoSaveNew"},
 }
 
@@ -33,15 +33,12 @@ func (s *timeDepositService) Add(td *TimeDeposit) (id int, err error) {
 		err = db.CommitOrRollback(tx, err)
 	}()
 
-	id, err = addDeposit(td.Deposit, tx)
+	id, err = DepService.add(td.Deposit, tx)
 	if err != nil {
 		return
 	}
 
 	err = s.add(td, tx)
-	if err != nil {
-		return
-	}
 	return
 }
 
@@ -68,7 +65,7 @@ func (s *timeDepositService) Update(deposit *TimeDeposit) (err error) {
 		err = db.CommitOrRollback(tx, err)
 	}()
 
-	err = updateDeposit(deposit.Deposit, tx)
+	err = DepService.update(deposit.Deposit, tx)
 	if err != nil {
 		return
 	}
@@ -86,11 +83,10 @@ func (s *timeDepositService) update(td *TimeDeposit, exe db.SqlExecuter) error {
 }
 
 func (s *timeDepositService) Get(id int) (td *TimeDeposit, err error) {
-	dep, err := GetDeposit(id)
+	dep, err := DepService.Get(id)
 	if err != nil {
 		return
 	}
-	td = &TimeDeposit{Deposit: dep}
 
 	sql := "SELECT " + db.ToColumnsString(s.columns) + " FROM Deposit WHERE id=?"
 	rows, err := db.DB.Query(sql, id)
@@ -102,7 +98,15 @@ func (s *timeDepositService) Get(id int) (td *TimeDeposit, err error) {
 	}()
 
 	for rows.Next() {
-		err = s.loadFromRows(td, rows)
+		if td == nil {
+			td = &TimeDeposit{Deposit: dep}
+			err = s.loadFromRows(td, rows)
+			if err != nil {
+				return
+			}
+		} else {
+			return nil, fmt.Errorf("TimeDeposit id %d 不只一個!?", id)
+		}
 	}
 	return
 }

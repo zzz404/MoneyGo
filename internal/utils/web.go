@@ -1,4 +1,4 @@
-package web
+package utils
 
 import (
 	"encoding/json"
@@ -18,7 +18,7 @@ type myTpl struct {
 
 var templateMap map[string]*myTpl = make(map[string]*myTpl)
 
-func getTemplate(path string) (*template.Template, error) {
+func GetTemplate(path string) (*template.Template, error) {
 	realPath := "Webapp" + path
 	file, err := os.Stat(realPath)
 	if err != nil {
@@ -54,7 +54,7 @@ type HttpResponse struct {
 	http.ResponseWriter
 }
 
-func (w *HttpResponse) responseForError(err error) bool {
+func (w *HttpResponse) ResponseForError(err error) bool {
 	if err != nil {
 		fmt.Fprintf(w, "Error: %s", err.Error())
 		return true
@@ -66,7 +66,7 @@ func (res *HttpResponse) Redirect(url string, req *HttpRequest) {
 	http.Redirect(res, req.Request, url, http.StatusSeeOther)
 }
 
-func (r *HttpRequest) getParameter(name string, required bool) (string, bool, error) {
+func (r *HttpRequest) GetParameter(name string, required bool) (string, bool, error) {
 	var strValue string
 	if r.isPost {
 		strValue = r.FormValue(name)
@@ -83,8 +83,8 @@ func (r *HttpRequest) getParameter(name string, required bool) (string, bool, er
 	return strValue, true, nil
 }
 
-func (r *HttpRequest) getIntParameter(name string, required bool) (int, bool, error) {
-	strValue, found, err := r.getParameter(name, required)
+func (r *HttpRequest) GetIntParameter(name string, required bool) (int, bool, error) {
+	strValue, found, err := r.GetParameter(name, required)
 	if err != nil || !found {
 		return 0, found, err
 	} else {
@@ -93,8 +93,8 @@ func (r *HttpRequest) getIntParameter(name string, required bool) (int, bool, er
 	}
 }
 
-func (r *HttpRequest) getFloatParameter(name string, required bool) (float64, bool, error) {
-	strValue, found, err := r.getParameter(name, required)
+func (r *HttpRequest) GetFloatParameter(name string, required bool) (float64, bool, error) {
+	strValue, found, err := r.GetParameter(name, required)
 	if err != nil || !found {
 		return 0, found, err
 	} else {
@@ -103,14 +103,14 @@ func (r *HttpRequest) getFloatParameter(name string, required bool) (float64, bo
 	}
 }
 
-func handleFunc(path string, fn func(r *HttpRequest, w *HttpResponse)) {
+func HandleFunc(path string, fn func(r *HttpRequest, w *HttpResponse)) {
 	f := func(w http.ResponseWriter, r *http.Request) {
 		ww := &HttpResponse{w}
 		rr := &HttpRequest{r, r.Method == "POST"}
 		if rr.isPost {
 			err := r.ParseForm()
 			if err != nil {
-				ww.responseForError(err)
+				ww.ResponseForError(err)
 				return
 			}
 		}
@@ -125,7 +125,7 @@ type JsonResult struct {
 	Data    interface{}
 }
 
-func (w *HttpResponse) writeJson(success bool, message string, data interface{}) {
+func (w *HttpResponse) WriteJson(success bool, message string, data interface{}) {
 	jsonResult := new(JsonResult)
 	jsonResult.Success = success
 	jsonResult.Data = data
@@ -133,9 +133,9 @@ func (w *HttpResponse) writeJson(success bool, message string, data interface{})
 	json.NewEncoder(w).Encode(jsonResult)
 }
 
-func (w *HttpResponse) responseJsonError(err error) bool {
+func (w *HttpResponse) ResponseJsonError(err error) bool {
 	if err != nil {
-		w.writeJson(false, err.Error(), nil)
+		w.WriteJson(false, err.Error(), nil)
 		return true
 	}
 	return false
