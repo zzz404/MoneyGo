@@ -9,6 +9,7 @@ import (
 	"github.com/zzz404/MoneyGo/internal/coin"
 	"github.com/zzz404/MoneyGo/internal/db"
 	mb "github.com/zzz404/MoneyGo/internal/member"
+	"github.com/zzz404/MoneyGo/internal/utils"
 )
 
 type DepositType struct {
@@ -16,17 +17,17 @@ type DepositType struct {
 	Name string
 }
 
-var DemandDeposit DepositType = DepositType{Code: 1, Name: "活存"}
-var TimeDeposit DepositType = DepositType{Code: 2, Name: "定存"}
+var DemandDepositType DepositType = DepositType{Code: 1, Name: "活存"}
+var TimeDepositType DepositType = DepositType{Code: 2, Name: "定存"}
 
-var DepositTypes = []*DepositType{&DemandDeposit, &TimeDeposit}
+var DepositTypes = []*DepositType{&DemandDepositType, &TimeDepositType}
 
 func GetDepositTypeByCode(code int) *DepositType {
 	switch code {
-	case DemandDeposit.Code:
-		return &DemandDeposit
-	case TimeDeposit.Code:
-		return &TimeDeposit
+	case DemandDepositType.Code:
+		return &DemandDepositType
+	case TimeDepositType.Code:
+		return &TimeDepositType
 	}
 	panic(fmt.Errorf("DepositType %d 不存在", code))
 }
@@ -77,7 +78,7 @@ func (d *Deposit) CoinType() *coin.CoinType {
 }
 
 func (d *Deposit) CreatedTimeString() string {
-	return d.CreatedTime.Format("2006-01-02 15:04:05")
+	return utils.FormatDate(d.CreatedTime)
 }
 
 func (d *Deposit) AmountString() string {
@@ -101,7 +102,7 @@ func (d *Deposit) toValuesOfUpdate() []interface{} {
 }
 
 func (d *Deposit) toValuesOfInsert() []interface{} {
-	return append(d.toValuesOfUpdate(), d.MemberId, d.ExRateWhenCreated)
+	return append(d.toValuesOfUpdate(), d.MemberId, d.CoinType().ExRate)
 }
 
 func (d *Deposit) loadFromRows(rows *sql.Rows) error {
@@ -187,6 +188,12 @@ func GetDeposit(id int) (*Deposit, error) {
 }
 
 func AddDeposit(deposit *Deposit) (int, error) {
+	exe := &db.SqlExecuter{}
+	defer exe.Close()
+	return addDeposit(deposit, exe)
+}
+
+func addDeposit(td *Deposit, exe *db.SqlExecuter) (int, error) {
 	params, err := db.ToSqlParams(len(columnsForInsert))
 	if err != nil {
 		return 0, err
@@ -194,22 +201,26 @@ func AddDeposit(deposit *Deposit) (int, error) {
 	sql := fmt.Sprintf("INSERT INTO Deposit (%s) VALUES (%s)",
 		db.ToColumnsString(columnsForInsert), params)
 
-	deposit.ExRateWhenCreated = deposit.CoinType().ExRate
-	result, err := db.ExecuteSql(sql, deposit.toValuesOfInsert()...)
+	result, err := exe.ExecuteSql(sql, td.toValuesOfInsert()...)
 	if err != nil {
 		return 0, err
 	}
-
 	id, err := result.LastInsertId()
 	return int(id), err
 }
 
 func UpdateDeposit(deposit *Deposit) error {
+	exe := &db.SqlExecuter{}
+	defer exe.Close()
+	return updateDeposit(deposit, exe)
+}
+
+func updateDeposit(deposit *Deposit, exe *db.SqlExecuter) error {
 	sql := fmt.Sprintf("UPDATE Deposit SET %s WHERE id=?",
 		db.ToSettersString(columnsForUpdate))
 	values := append(deposit.toValuesOfUpdate(), deposit.Id)
 
-	_, err := db.ExecuteSql(sql, values...)
+	_, err := exe.ExecuteSql(sql, values...)
 	return err
 }
 
