@@ -25,7 +25,9 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	defer utils.Must(rows.Close())
+	defer func() {
+		utils.Must(rows.Close())
+	}()
 
 	for rows.Next() {
 		member := Member{}

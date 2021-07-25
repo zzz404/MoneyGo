@@ -82,8 +82,17 @@ func Must(err error) {
 	}
 }
 
-func FormatDate(t time.Time) string {
-	return t.Format("2006-01-02 15:04:05")
+func FormatDate(t *time.Time) string {
+	if t != nil {
+		return t.Format("2006-01-02 15:04:05")
+	} else {
+		return ""
+	}
+}
+
+func ParseDate(s string) (*time.Time, error) {
+	t, err := time.Parse("2006-01-02 15:04:05", s)
+	return &t, err
 }
 
 func CombineError(err1 error, err2 error) error {

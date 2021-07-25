@@ -76,7 +76,7 @@ func (d *Deposit) CoinType() *coin.CoinType {
 }
 
 func (d *Deposit) CreatedTimeString() string {
-	return utils.FormatDate(d.CreatedTime)
+	return utils.FormatDate(&d.CreatedTime)
 }
 
 func (d *Deposit) AmountString() string {

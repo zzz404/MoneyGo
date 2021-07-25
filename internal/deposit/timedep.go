@@ -27,13 +27,18 @@ func GetInterestRateTypeByCode(code int) *InterestRateType {
 	panic(fmt.Errorf("InterestRateType %d 不存在", code))
 }
 
+type AutoSaveNewType struct {
+	Code int
+	Name string
+}
+
 type TimeDeposit struct {
 	*Deposit
 	StartDate    time.Time
-	EndDate      time.Time
-	InterestRate float64
-	RateTypeCode int
-	AutoSaveNew  int
+	Duration     int     // 存幾個月
+	InterestRate float64 // 年利率
+	RateTypeCode int     // 固定或機動
+	AutoSaveNew  *bool   // 自動轉存
 }
 
 func NewTimeDeposit() *TimeDeposit {
@@ -41,11 +46,11 @@ func NewTimeDeposit() *TimeDeposit {
 }
 
 func (td *TimeDeposit) StartDateString() string {
-	return utils.FormatDate(td.StartDate)
+	return utils.FormatDate(&td.StartDate)
 }
 
-func (td *TimeDeposit) EndDateString() string {
-	return utils.FormatDate(td.EndDate)
+func (td *TimeDeposit) InterestRatePercent() float64 {
+	return td.InterestRate * 100
 }
 
 func (td *TimeDeposit) RateType() *InterestRateType {
@@ -53,10 +58,12 @@ func (td *TimeDeposit) RateType() *InterestRateType {
 }
 
 func (td *TimeDeposit) AutoSaveNewString() string {
-	if td.AutoSaveNew == 0 {
-		return "否"
-	} else {
+	if td.AutoSaveNew == nil {
+		return ""
+	} else if *td.AutoSaveNew {
 		return "是"
+	} else {
+		return "否"
 	}
 }
 

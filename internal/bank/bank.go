@@ -25,7 +25,9 @@ func loadBanks() {
 	if err != nil {
 		panic(err)
 	}
-	defer utils.Must(rows.Close())
+	defer func() {
+		utils.Must(rows.Close())
+	}()
 
 	for rows.Next() {
 		bank := Bank{}
@@ -70,7 +72,9 @@ func loadBankAccounts() {
 	if err != nil {
 		panic(err)
 	}
-	defer utils.Must(rows.Close())
+	defer func() {
+		utils.Must(rows.Close())
+	}()
 
 	for rows.Next() {
 		a := &BankAccount{}
@@ -91,8 +95,9 @@ func AddBankAccount(account *BankAccount) error {
 	} else {
 		for i, a := range BankAccounts {
 			if account.Compare(a) < 0 {
-				bas := append(BankAccounts[:i], account)
-				BankAccounts = append(bas, BankAccounts[i:]...)
+				BankAccounts = append(BankAccounts, nil)
+				copy(BankAccounts[i+1:], BankAccounts[i:])
+				BankAccounts[i] = account
 				break
 			}
 		}

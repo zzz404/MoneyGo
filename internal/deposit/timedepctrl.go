@@ -15,10 +15,6 @@ type timeDepositController struct {
 var TimeDepController = new(timeDepositController)
 
 func (c *timeDepositController) Edit(r *ut.HttpRequest, w *ut.HttpResponse) {
-	tpl, err := ut.GetTemplate("/timeDepositEdit.html")
-	if w.ResponseForError(err) {
-		return
-	}
 	id, isEdit, err := r.GetIntParameter("id", false)
 	if w.ResponseForError(err) {
 		return
@@ -41,15 +37,11 @@ func (c *timeDepositController) Edit(r *ut.HttpRequest, w *ut.HttpResponse) {
 		if w.ResponseForError(err) {
 			return
 		}
-		typeCode, _, err := r.GetIntParameter("typeCode", false)
-		if w.ResponseForError(err) {
-			return
-		}
 		coinTypeCode, _, err := r.GetParameter("coinTypeCode", false)
 		if w.ResponseForError(err) {
 			return
 		}
-		d := &Deposit{MemberId: memberId, BankId: bankId, TypeCode: typeCode, CoinTypeCode: coinTypeCode}
+		d := &Deposit{MemberId: memberId, BankId: bankId, CoinTypeCode: coinTypeCode}
 		td = &TimeDeposit{Deposit: d}
 	}
 
@@ -58,11 +50,15 @@ func (c *timeDepositController) Edit(r *ut.HttpRequest, w *ut.HttpResponse) {
 		"members":      mb.Members,
 		"banks":        bk.Banks,
 		"bankAccounts": bk.BankAccounts,
-		"depositTypes": DepositTypes,
 		"coinTypes":    coin.CoinTypes,
 	}
 	if isEdit {
 		data["id"] = td.Id
+	}
+
+	tpl, err := ut.GetTemplate("/timeDepositEdit.html")
+	if w.ResponseForError(err) {
+		return
 	}
 	err = tpl.Execute(w, data)
 
@@ -70,71 +66,56 @@ func (c *timeDepositController) Edit(r *ut.HttpRequest, w *ut.HttpResponse) {
 }
 
 func (c *timeDepositController) Update(r *ut.HttpRequest, w *ut.HttpResponse) {
-	deposit := &Deposit{}
-
-	id, hasId, err := r.GetIntParameter("id", false)
+	deposit, hasId, err := DepController.readDepositFromRequest(r)
 	if w.ResponseForError(err) {
 		return
 	}
+	td := &TimeDeposit{Deposit: deposit}
+
+	startDate, _, err := r.GetDateParameter("startDate", true)
+	if w.ResponseForError(err) {
+		return
+	}
+	td.StartDate = *startDate
+
+	duration, _, err := r.GetIntParameter("duration", true)
+	if w.ResponseForError(err) {
+		return
+	}
+	td.Duration = duration
+
+	td.InterestRate, _, err = r.GetFloatParameter("interestRate", true)
+	if w.ResponseForError(err) {
+		return
+	}
+
+	td.RateTypeCode, _, err = r.GetIntParameter("rateTypeCode", true)
+	if w.ResponseForError(err) {
+		return
+	}
+
+	td.RateTypeCode, _, err = r.GetIntParameter("rateTypeCode", true)
+	if w.ResponseForError(err) {
+		return
+	}
+
+	autoSaveNew, found, err := r.GetBoolParameter("autoSaveNew", false)
+	if w.ResponseForError(err) {
+		return
+	}
+	if found {
+		td.AutoSaveNew = &autoSaveNew
+	}
+
 	if hasId {
-		deposit.Id = id
-	}
-
-	deposit.MemberId, _, err = r.GetIntParameter("memberId", true)
-	if w.ResponseForError(err) {
-		return
-	}
-
-	deposit.BankId, _, err = r.GetIntParameter("bankId", true)
-	if w.ResponseForError(err) {
-		return
-	}
-
-	deposit.BankAccount, _, err = r.GetParameter("bankAccount", true)
-	if w.ResponseForError(err) {
-		return
-	}
-
-	deposit.TypeCode, _, err = r.GetIntParameter("typeCode", true)
-	if w.ResponseForError(err) {
-		return
-	}
-
-	deposit.Amount, _, err = r.GetFloatParameter("amount", true)
-	if w.ResponseForError(err) {
-		return
-	}
-
-	deposit.CoinTypeCode, _, err = r.GetParameter("coinTypeCode", true)
-	if w.ResponseForError(err) {
-		return
-	}
-
-	if hasId {
-		err = DepService.Update(deposit)
-		if w.ResponseForError(err) {
-			return
-		}
+		err = TimeDepService.Update(td)
 	} else {
-		_, err = DepService.Add(deposit)
-		if w.ResponseForError(err) {
-			return
-		}
+		_, err = TimeDepService.Add(td)
+	}
+	if w.ResponseForError(err) {
+		return
 	}
 	w.Redirect("/static/ReloadOpenerThenClose.html", r)
-}
-
-func (c *timeDepositController) Delete(r *ut.HttpRequest, w *ut.HttpResponse) {
-	id, _, err := r.GetIntParameter("id", true)
-	if w.ResponseJsonError(err) {
-		return
-	}
-
-	err = DepService.Delete(id)
-	if w.ResponseJsonError(err) {
-		return
-	}
-	w.WriteJson(true, "", nil)
 }
 
 func (c *timeDepositController) List(r *ut.HttpRequest, w *ut.HttpResponse) {
@@ -144,29 +125,28 @@ func (c *timeDepositController) List(r *ut.HttpRequest, w *ut.HttpResponse) {
 		return
 	}
 
-	tpl, err := ut.GetTemplate("/depositList.html")
-	if w.ResponseForError(err) {
-		return
-	}
-	deposits, err := DepService.Query(form)
+	tds, err := TimeDepService.Query(form)
 	if w.ResponseForError(err) {
 		return
 	}
 
-	totalTWD := 0.0
-	for _, d := range deposits {
-		totalTWD += d.Amount * d.CoinType().ExRate
+	totalYearIncome := 0.0
+	for _, td := range tds {
+		totalYearIncome += td.EspectedYearIncome()
 	}
 
+	tpl, err := ut.GetTemplate("/timeDepositList.html")
+	if w.ResponseForError(err) {
+		return
+	}
 	err = tpl.Execute(w, map[string]interface{}{
-		"form":      form,
-		"members":   mb.Members,
-		"banks":     bk.Banks,
-		"coinTypes": coin.CoinTypes,
-		"types":     DepositTypes,
-		"deposits":  deposits,
-		"count":     len(deposits),
-		"totalTWD":  fmt.Sprintf("%.2f", totalTWD),
+		"form":            form,
+		"members":         mb.Members,
+		"banks":           bk.Banks,
+		"coinTypes":       coin.CoinTypes,
+		"tds":             tds,
+		"count":           len(tds),
+		"totalYearIncome": fmt.Sprintf("%.2f", totalYearIncome),
 	})
 	w.ResponseForError(err)
 }

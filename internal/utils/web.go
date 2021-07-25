@@ -103,6 +103,32 @@ func (r *HttpRequest) GetFloatParameter(name string, required bool) (float64, bo
 	}
 }
 
+func (r *HttpRequest) GetBoolParameter(name string, required bool) (value bool, found bool, err error) {
+	strValue, found, err := r.GetParameter(name, required)
+	if err != nil || !found {
+		return
+	} else {
+		if strValue == "true" {
+			value = true
+		} else if strValue == "false" {
+			value = false
+		} else {
+			err = fmt.Errorf("字串 %s 轉 boolean 失敗", strValue)
+		}
+		return
+	}
+}
+
+func (r *HttpRequest) GetDateParameter(name string, required bool) (*time.Time, bool, error) {
+	strValue, found, err := r.GetParameter(name, required)
+	if err != nil || !found {
+		return nil, found, err
+	} else {
+		value, err := ParseDate(strValue)
+		return value, found, err
+	}
+}
+
 func HandleFunc(path string, fn func(r *HttpRequest, w *HttpResponse)) {
 	f := func(w http.ResponseWriter, r *http.Request) {
 		ww := &HttpResponse{w}
