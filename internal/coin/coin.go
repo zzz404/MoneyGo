@@ -20,19 +20,13 @@ type CoinType struct {
 const TWD string = "TWD"
 
 func init() {
-	err := loadCoinTypes()
-	if err != nil {
-		panic(err)
-	}
+	loadCoinTypes()
 
 	m, err := queryExRateFromWeb()
 	if err != nil {
 		fmt.Printf("網路讀取匯率失敗! 跳過匯率更新。錯誤訊息:  %s", err.Error())
 	} else {
-		err = updateExRateToDb(m)
-		if err != nil {
-			panic(err)
-		}
+		updateExRateToDb(m)
 		updateExRateToCache(m)
 	}
 }
@@ -46,13 +40,13 @@ func updateExRateToCache(m map[string]float64) {
 	}
 }
 
-func updateExRateToDb(m map[string]float64) (err error) {
+func updateExRateToDb(m map[string]float64) {
 	tx, err := db.DB.Begin()
 	if err != nil {
-		return
+		panic(err)
 	}
 	defer func() {
-		err = db.CommitOrRollback(tx, err)
+		utils.Must(db.CommitOrRollback(tx, err))
 	}()
 
 	sql := "UPDATE CoinType SET exchangeRate=? WHERE code=?"
@@ -67,35 +61,33 @@ func updateExRateToDb(m map[string]float64) (err error) {
 	for _, coinType := range CoinTypes {
 		rate, ok := m[coinType.Code]
 		if ok {
-			_, err = pstmt.Exec(rate, coinType.Code)
-			if err != nil {
+			_, err1 := pstmt.Exec(rate, coinType.Code)
+			if err1 != nil {
+				err = utils.CombineError(err, err1)
 				return
 			}
 		}
 	}
-	return
 }
 
 var CoinTypes []*CoinType
 
-func loadCoinTypes() (err error) {
+func loadCoinTypes() {
 	rows, err := db.DB.Query("SELECT code, name, exchangeRate FROM CoinType")
 	if err != nil {
-		return
+		panic(err)
 	}
 	defer func() {
-		err = utils.CombineError(err, rows.Close())
+		utils.Must(err, rows.Close())
 	}()
 
 	for rows.Next() {
 		coinType := CoinType{}
-		err = rows.Scan(&coinType.Code, &coinType.Name, &coinType.ExRate)
-		if err != nil {
+		if err = rows.Scan(&coinType.Code, &coinType.Name, &coinType.ExRate); err != nil {
 			return
 		}
 		CoinTypes = append(CoinTypes, &coinType)
 	}
-	return
 }
 
 func queryExRateFromWeb() (map[string]float64, error) {

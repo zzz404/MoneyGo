@@ -26,12 +26,14 @@ func loadBanks() {
 		panic(err)
 	}
 	defer func() {
-		utils.Must(rows.Close())
+		utils.Must(err, rows.Close())
 	}()
 
 	for rows.Next() {
 		bank := Bank{}
-		utils.Must(rows.Scan(&bank.Id, &bank.Name))
+		if err = rows.Scan(&bank.Id, &bank.Name); err != nil {
+			return
+		}
 		Banks = append(Banks, &bank)
 	}
 }
@@ -78,7 +80,9 @@ func loadBankAccounts() {
 
 	for rows.Next() {
 		a := &BankAccount{}
-		utils.Must(rows.Scan(&a.BankId, &a.Account))
+		if err = rows.Scan(&a.BankId, &a.Account); err != nil {
+			return
+		}
 		BankAccounts = append(BankAccounts, a)
 	}
 }

@@ -93,6 +93,16 @@ func (r *HttpRequest) GetIntParameter(name string, required bool) (int, bool, er
 	}
 }
 
+func (r *HttpRequest) GetIntPointerParameter(name string, required bool) (*int, error) {
+	strValue, found, err := r.GetParameter(name, required)
+	if err != nil || !found {
+		return nil, err
+	} else {
+		value, err := strconv.Atoi(strValue)
+		return &value, err
+	}
+}
+
 func (r *HttpRequest) GetFloatParameter(name string, required bool) (float64, bool, error) {
 	strValue, found, err := r.GetParameter(name, required)
 	if err != nil || !found {
@@ -100,6 +110,16 @@ func (r *HttpRequest) GetFloatParameter(name string, required bool) (float64, bo
 	} else {
 		value, err := strconv.ParseFloat(strValue, 32)
 		return value, found, err
+	}
+}
+
+func (r *HttpRequest) GetFloatPointerParameter(name string, required bool) (*float64, error) {
+	strValue, found, err := r.GetParameter(name, required)
+	if err != nil || !found {
+		return nil, err
+	} else {
+		value, err := strconv.ParseFloat(strValue, 32)
+		return &value, err
 	}
 }
 
@@ -119,13 +139,31 @@ func (r *HttpRequest) GetBoolParameter(name string, required bool) (value bool, 
 	}
 }
 
-func (r *HttpRequest) GetDateParameter(name string, required bool) (*time.Time, bool, error) {
+func (r *HttpRequest) GetBoolPointerParameter(name string, required bool) (*bool, error) {
 	strValue, found, err := r.GetParameter(name, required)
 	if err != nil || !found {
-		return nil, found, err
+		return nil, err
+	} else {
+		if strValue == "true" {
+			result := true
+			return &result, nil
+		} else if strValue == "false" {
+			result := false
+			return &result, nil
+		} else {
+			err = fmt.Errorf("字串 %s 轉 boolean 失敗", strValue)
+			return nil, err
+		}
+	}
+}
+
+func (r *HttpRequest) GetDatePointerParameter(name string, required bool) (*time.Time, error) {
+	strValue, found, err := r.GetParameter(name, required)
+	if err != nil || !found {
+		return nil, err
 	} else {
 		value, err := ParseDate(strValue)
-		return value, found, err
+		return value, err
 	}
 }
 
@@ -165,4 +203,10 @@ func (w *HttpResponse) ResponseJsonError(err error) bool {
 		return true
 	}
 	return false
+}
+
+type Radio struct {
+	Value   string
+	Text    string
+	Checked bool
 }

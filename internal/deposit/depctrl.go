@@ -2,6 +2,7 @@ package deposit
 
 import (
 	"fmt"
+	"strconv"
 
 	bk "github.com/zzz404/MoneyGo/internal/bank"
 	"github.com/zzz404/MoneyGo/internal/coin"
@@ -115,6 +116,28 @@ func (c *depositController) Edit(r *ut.HttpRequest, w *ut.HttpResponse) {
 		td = &TimeDeposit{Deposit: deposit}
 	}
 
+	radioFixed := ut.Radio{
+		Text:    InterestRateType_FIXED.Name,
+		Value:   strconv.Itoa(InterestRateType_FIXED.Code),
+		Checked: (td.RateTypeCode != nil && *td.RateTypeCode == InterestRateType_FIXED.Code),
+	}
+	radioVariable := ut.Radio{
+		Text:    InterestRateType_VARIABLE.Name,
+		Value:   strconv.Itoa(InterestRateType_VARIABLE.Code),
+		Checked: (td.RateTypeCode != nil && *td.RateTypeCode == InterestRateType_VARIABLE.Code),
+	}
+
+	radioYes := ut.Radio{
+		Text:    "是",
+		Value:   "true",
+		Checked: (td.AutoSaveNew != nil && *td.AutoSaveNew),
+	}
+	radioNo := ut.Radio{
+		Text:    "否",
+		Value:   "false",
+		Checked: (td.AutoSaveNew != nil && !*td.AutoSaveNew),
+	}
+
 	data := map[string]interface{}{
 		"deposit":           td,
 		"members":           mb.Members,
@@ -122,8 +145,9 @@ func (c *depositController) Edit(r *ut.HttpRequest, w *ut.HttpResponse) {
 		"bankAccounts":      bk.BankAccounts,
 		"depositTypes":      DepositTypes,
 		"coinTypes":         coin.CoinTypes,
-		"interestRateTypes": InterestRateTypes,
+		"interestRateTypes": []*ut.Radio{&radioFixed, &radioVariable},
 		"timeDepCode":       TimeDepositType.Code,
+		"autoSaveNews":      []*ut.Radio{&radioYes, &radioNo},
 	}
 	if isEdit {
 		data["id"] = deposit.Id
@@ -159,7 +183,7 @@ func (c *depositController) readDepositFromRequest(r *ut.HttpRequest) (deposit *
 		return
 	}
 
-	deposit.BankAccount, _, err = r.GetParameter("bankAccount", true)
+	deposit.BankAccount, _, err = r.GetParameter("bankAccount", false)
 	if err != nil {
 		return
 	}
@@ -183,32 +207,35 @@ func (c *depositController) readDepositFromRequest(r *ut.HttpRequest) (deposit *
 }
 
 func (c *depositController) readTimeDepositFromRequest(td *TimeDeposit, r *ut.HttpRequest) error {
-	startDate, _, err := r.GetDateParameter("startDate", true)
+	startDate, err := r.GetDatePointerParameter("startDate", false)
 	if err != nil {
 		return err
 	}
-	td.StartDate = *startDate
+	td.StartDate = startDate
 
-	duration, _, err := r.GetIntParameter("duration", true)
+	endDate, err := r.GetDatePointerParameter("endDate", false)
+	if err != nil {
+		return err
+	}
+	td.EndDate = endDate
+
+	duration, err := r.GetIntPointerParameter("duration", false)
 	if err != nil {
 		return err
 	}
 	td.Duration = duration
 
-	td.InterestRate, _, err = r.GetFloatParameter("interestRate", true)
+	interestRate, err := r.GetFloatPointerParameter("interestRate", false)
 	if err != nil {
 		return err
 	}
+	td.InterestRate = interestRate
 
-	td.RateTypeCode, _, err = r.GetIntParameter("rateTypeCode", true)
+	rateTypeCode, err := r.GetIntPointerParameter("rateTypeCode", false)
 	if err != nil {
 		return err
 	}
-
-	td.RateTypeCode, _, err = r.GetIntParameter("rateTypeCode", true)
-	if err != nil {
-		return err
-	}
+	td.RateTypeCode = rateTypeCode
 
 	autoSaveNew, found, err := r.GetBoolParameter("autoSaveNew", false)
 	if err != nil {

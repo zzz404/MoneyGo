@@ -13,11 +13,11 @@ type timeDepositService struct {
 }
 
 var TimeDepService = &timeDepositService{
-	columns: []string{"startDate", "duration", "interestRate", "rateTypeCode", "autoSaveNew"},
+	columns: []string{"startDate", "endDate", "duration", "interestRate", "rateTypeCode", "autoSaveNew"},
 }
 
 func (s *timeDepositService) toValues(d *TimeDeposit) []interface{} {
-	return []interface{}{d.StartDate, d.Duration, d.InterestRate, d.RateTypeCode, d.AutoSaveNew}
+	return []interface{}{d.StartDate, d.EndDate, d.Duration, d.InterestRate, d.RateTypeCode, d.AutoSaveNew}
 }
 
 func (s *timeDepositService) loadFromRows(td *TimeDeposit, rows *sql.Rows) error {
@@ -30,7 +30,7 @@ func (s *timeDepositService) loadFromRows(td *TimeDeposit, rows *sql.Rows) error
 	// 	td.AutoSaveNew = &autoSaveNew.Bool
 	// }
 	// return nil
-	return rows.Scan(&td.StartDate, &td.Duration, &td.InterestRate, &td.RateTypeCode, &td.AutoSaveNew)
+	return rows.Scan(&td.StartDate, &td.EndDate, &td.Duration, &td.InterestRate, &td.RateTypeCode, &td.AutoSaveNew)
 }
 
 func (s *timeDepositService) Add(td *TimeDeposit) (id int, err error) {
@@ -109,14 +109,6 @@ func (s *timeDepositService) update(td *TimeDeposit, exe db.SqlExecuter) (int, e
 	return int(rowsAffected), nil
 }
 
-func (s *timeDepositService) Get(id int) (td *TimeDeposit, err error) {
-	dep, err := DepService.Get(id)
-	if err != nil {
-		return
-	}
-	return s.GetTd(dep)
-}
-
 func (s *timeDepositService) GetTd(dep *Deposit) (td *TimeDeposit, err error) {
 	sql := "SELECT " + db.ToColumnsString(s.columns) + " FROM TimeDeposit WHERE depId=?"
 	rows, err := db.DB.Query(sql, dep.Id)
@@ -160,7 +152,7 @@ func (s *timeDepositService) Query(form *QueryForm) (tds []*TimeDeposit, err err
 		// }
 		// return nil
 		return rows.Scan(&td.MemberId, &td.BankId, &td.Amount, &td.CoinTypeCode,
-			&td.StartDate, &td.Duration, &td.InterestRate, &td.RateTypeCode, &td.AutoSaveNew)
+			td.StartDate, td.Duration, td.InterestRate, td.RateTypeCode, td.AutoSaveNew)
 	}
 
 	sb.AddCondition("td.depId=d.id", nil)

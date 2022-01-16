@@ -82,7 +82,7 @@
         <tr>
           <td>帳號</td>
           <td>
-            <select id="bankAccount" name="bankAccount" required="true">
+            <select id="bankAccount" name="bankAccount">
               <option value="">選擇帳號</option>
             </select>
           </td>
@@ -101,7 +101,7 @@
         <tr>
           <td>金額</td>
           <td>
-            <input type="number" name="amount" step="0.01" value="{{.deposit.AmountString}}" />
+            <input type="number" name="amount" step="0.01" value="{{.deposit.AmountString}}" required="required" />
           </td>
         </tr>
         <tr>
@@ -117,45 +117,50 @@
         <tr class="timePart">
           <td>開始時間</td>
           <td>
-            <input type="date" name="startDate" value="{{.StartDateString}}" />
+            <input type="date" name="startDate" value="{{.deposit.StartDateString}}" />
+          </td>
+        </tr>
+        <tr class="timePart">
+          <td>結束時間</td>
+          <td>
+            <input type="date" name="endDate" value="{{.deposit.EndDateString}}" />
           </td>
         </tr>
         <tr class="timePart">
           <td>期間(月)</td>
           <td>
-            <input type="number" name="duration" value="{{.Duration}}" />
+            <input type="number" name="duration" value="{{.deposit.DurationString}}" />
           </td>
         </tr>
         <tr class="timePart">
           <td>年利率</td>
           <td>
-            <input type="number" step="0.01" name="interestRate" value="{{.Percent}}" />%
+            <input type="number" step="0.01" name="interestRate" value="{{.deposit.InterestRatePercentString}}" 
+              style="width:5em" /> %
           </td>
         </tr>
         <tr class="timePart">
           <td>利率別</td>
           <td>
           {{ range .interestRateTypes }}
-          <input type="radio" name="interestRate" value="{{ .Code }}" required="required" {{ if eq .Code $.deposit.RateTypeCode}}
-            checked="checked" {{ end }} />
-          {{.Name}} &nbsp;&nbsp;
+          <input type="radio" name="rateTypeCode" value="{{ .Value }}" 
+            {{ if .Checked }}
+              checked="checked" 
+            {{ end }} />
+          {{.Text}} &nbsp;&nbsp;
           {{ end }}
           </td>
         </tr>
         <tr class="timePart">
           <td>自動轉存</td>
           <td>
-            <input type="radio" name="autoSaveNew" value="true" required="required" 
-              {{ if $.deposit.AutoSaveNew }} checked="checked" {{ end }} />
-            是 &nbsp;&nbsp;
-
-            <input type="radio" name="autoSaveNew" value="false" required="required" 
-              {{ if not $.deposit.AutoSaveNew }} checked="checked" {{ end }} />
-            否 &nbsp;&nbsp;
-
-            <input type="radio" name="autoSaveNew" value="" required="required" 
-              {{ if eq $.deposit.AutoSaveNew nil }} checked="checked" {{ end }} />
-            不知道 &nbsp;&nbsp;
+          {{ range .autoSaveNews }}
+          <input type="radio" name="autoSaveNew" value="{{ .Value }}" 
+            {{ if .Checked }}
+              checked="checked" 
+            {{ end }} />
+          {{.Text}} &nbsp;&nbsp;
+          {{ end }}
           </td>
         </tr>
         <tr>

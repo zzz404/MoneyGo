@@ -71,6 +71,8 @@ func startWeb() {
 	ut.HandleFunc("/depositEdit", dp.DepController.Edit)
 	ut.HandleFunc("/depositUpdate", dp.DepController.Update)
 	ut.HandleFunc("/depositDelete", dp.DepController.Delete)
+	ut.HandleFunc("/timeDepositList", dp.TimeDepController.List)
+
 	fs := http.FileServer(http.Dir("Webapp/static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 

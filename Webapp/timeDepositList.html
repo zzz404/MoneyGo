@@ -1,0 +1,120 @@
+<html>
+  <head>
+    <script src="/static/AjaxSender.js"></script>
+    <script>
+      function doDelete(id) {
+        AjaxSender().httpPost('depositDelete', {id:id}, function(self) {
+          self.checkSuccess();
+          location.reload();
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <a href="/">首頁</a>
+    <hr />
+    <a target="_new" href="/depositEdit?memberId={{.form.MemberId}}&bankId={{.form.BankId}}&typeCode={{.form.TypeCode}}&coinTypeCode={{.form.CoinTypeCode}}">新增</a>
+    <hr />
+    <form action="/depositList" method="GET">
+      <table width="100%">
+        <tr>
+          <td>
+            人員:
+            <select name="memberId" onchange="this.form.submit();">
+              <option value="0">請選擇</option>
+              {{ range .members }}
+              <option value="{{ .Id }}" {{ if eq .Id $.form.MemberId }}selected="selected" {{ end }}>{{ .Name }}</option>
+              {{ end }}
+            </select>
+          </td>
+          <td>
+            銀行:
+            <select name="bankId" onchange="this.form.submit();">
+              <option value="0">請選擇</option>
+              {{ range .banks }}
+              <option value="{{ .Id }}" {{ if eq .Id $.form.BankId }}selected="selected" {{ end }}>{{ .Name }}</option>
+              {{ end }}
+            </select>
+          </td>
+          <td>
+            種類:
+            <select name="typeCode" onchange="this.form.submit();">
+              <option value="0">請選擇</option>
+              {{ range .types }}
+              <option value="{{ .Code }}" {{ if eq .Code $.form.TypeCode }}selected="selected" {{ end }}>{{ .Name }}</option>
+              {{ end }}
+            </select>
+          </td>
+          <td>
+            幣別:
+            <select name="coinTypeCode" onchange="this.form.submit();">
+              <option value="">請選擇</option>
+              {{ range .coinTypes }}
+              <option value="{{ .Code }}" {{ if eq .Code $.form.CoinTypeCode }}selected="selected" {{ end }}>{{ .Name }}</option>
+              {{ end }}
+            </select>
+          </td>
+          <td>
+            <input type="button" onclick="location.href='/depositList';" value="查詢全部" />
+          </td>
+        </tr>
+      </table>
+    </form>
+    <br />
+    共 {{.count}} 筆,    總金額 {{.totalTWD}}
+    <table border="1" width="100%">
+      <tr style="background-color:cyan;font-weight:bold;">
+        <td>人員</td>
+        <td>銀行</td>
+        <td>帳號</td>
+        <td>種類</td>
+        <td>金額</td>
+        <td>幣別</td>
+        <td>折合台幣</td>
+        <td>建立時間</td>
+        <td>建立時匯率</td>
+        <td>現在匯率</td>
+        <td>指令</td>
+      </tr>
+    {{range .deposits}}
+      <tr>
+        <td>
+          {{.Member.Name}}
+        </td>
+        <td>
+          {{.Bank.Name}}
+        </td>
+        <td>
+          {{.BankAccount}}
+        </td>
+        <td>
+          {{.Type.Name}}
+        </td>
+        <td>
+          {{.AmountString}}
+        </td>
+        <td>
+          {{.CoinType.Name}}
+        </td>
+        <td>
+          {{.TwAmountString}}
+        </td>
+        <td>
+          {{.CreatedTimeString}}
+        </td>
+        <td>
+          {{.ExRateWhenCreated}}
+        </td>
+        <td>
+          {{.CoinType.ExRate}}
+        </td>
+        <td>
+          <a href="depositEdit?id={{.Id}}" target="_new">修改</a>
+          &nbsp;&nbsp;
+          <a href="javascript:doDelete({{.Id}})">刪除</a>
+        </td>
+      </tr>
+    {{end}}
+    </table>
+  </body>
+</html>

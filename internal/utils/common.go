@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -76,13 +77,32 @@ func CopyFile(srcPath, destPath string) (err error) {
 	return
 }
 
-func Must(err error) {
-	if err != nil {
-		panic(err)
+func Must(errs ...error) {
+	var sb strings.Builder
+	errCount := 0
+	for _, err := range errs {
+		if err != nil {
+			if errCount > 0 {
+				sb.WriteString(";\n")
+			}
+			sb.WriteString(err.Error())
+			errCount++
+		}
+	}
+	if errCount > 0 {
+		panic(errors.New(sb.String()))
 	}
 }
 
 func FormatDate(t *time.Time) string {
+	if t != nil {
+		return t.Format("2006-01-02")
+	} else {
+		return ""
+	}
+}
+
+func FormatTime(t *time.Time) string {
 	if t != nil {
 		return t.Format("2006-01-02 15:04:05")
 	} else {
@@ -91,6 +111,11 @@ func FormatDate(t *time.Time) string {
 }
 
 func ParseDate(s string) (*time.Time, error) {
+	t, err := time.Parse("2006-01-02", s)
+	return &t, err
+}
+
+func ParseTime(s string) (*time.Time, error) {
 	t, err := time.Parse("2006-01-02 15:04:05", s)
 	return &t, err
 }
