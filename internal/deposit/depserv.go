@@ -161,31 +161,38 @@ func (s *depositService) Delete(id int) error {
 	return err
 }
 
-func (s *depositService) QueryTotalTWD() (map[int]float64, float64, error) {
-	m := map[int]float64{}
-	sql := `SELECT d.memberId, sum(d.amount*c.exchangeRate) AS totalTWD
+func (s *depositService) QueryTotalTWD() (map[int]float64, float64, map[int]float64, float64, error) {
+	sql := `SELECT d.memberId, d.type, sum(d.amount*c.exchangeRate) AS totalTWD
             FROM Deposit d, CoinType c 
             WHERE d.coinType=c.code
-            GROUP BY d.memberId`
+            GROUP BY d.memberId, d.type`
 	rows, err := db.DB.Query(sql)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, nil, 0, err
 	}
 	defer func() {
 		err = utils.CombineError(err, rows.Close())
 	}()
 
 	var memberId int
+	var typeCode int
 	var memberTotal float64
-	var total float64 = 0
+	all_map := map[int]float64{}
+	var all_total float64 = 0
+	time_map := map[int]float64{}
+	var time_total float64 = 0
 
 	for rows.Next() {
-		err := rows.Scan(&memberId, &memberTotal)
+		err := rows.Scan(&memberId, &typeCode, &memberTotal)
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, nil, 0, err
 		}
-		m[memberId] = memberTotal
-		total += memberTotal
+		all_map[memberId] = all_map[memberId] + memberTotal
+		all_total += memberTotal
+		if typeCode == TimeDepositType.Code {
+			time_map[memberId] = memberTotal
+			time_total += memberTotal
+		}
 	}
-	return m, total, nil
+	return all_map, all_total, time_map, time_total, nil
 }

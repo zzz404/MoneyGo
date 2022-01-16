@@ -38,24 +38,31 @@ func index(r *ut.HttpRequest, w *ut.HttpResponse) {
 	if w.ResponseForError(err) {
 		return
 	}
-	m, totalTWD, err := dp.DepService.QueryTotalTWD()
+	all_map, all_total, time_map, time_total, err := dp.DepService.QueryTotalTWD()
 	if w.ResponseForError(err) {
 		return
 	}
 	var members []*mb.Member
 	for _, member := range mb.Members {
-		memberTotal, ok := m[member.Id]
+		memberAllTotal, ok := all_map[member.Id]
 		if ok {
-			member.TotalTWD = memberTotal
+			member.AllTotalTWD = memberAllTotal
 		} else {
-			member.TotalTWD = 0
+			member.AllTotalTWD = 0
+		}
+		memberTimeTotal, ok := time_map[member.Id]
+		if ok {
+			member.TimeTotalTWD = memberTimeTotal
+		} else {
+			member.TimeTotalTWD = 0
 		}
 		members = append(members, member)
 	}
 
 	err = tpl.Execute(w, map[string]interface{}{
-		"members":        members,
-		"totalTWDString": fmt.Sprintf("%.2f", totalTWD),
+		"members":            members,
+		"allTotalTWDString":  fmt.Sprintf("%.2f", all_total),
+		"timeTotalTWDString": fmt.Sprintf("%.2f", time_total),
 	})
 
 	w.ResponseForError(err)

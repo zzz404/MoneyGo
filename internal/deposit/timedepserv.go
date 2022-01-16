@@ -21,15 +21,6 @@ func (s *timeDepositService) toValues(d *TimeDeposit) []interface{} {
 }
 
 func (s *timeDepositService) loadFromRows(td *TimeDeposit, rows *sql.Rows) error {
-	//var autoSaveNew sql.NullBool
-	// err := rows.Scan(&td.StartDate, &td.EndDate, &td.InterestRate, &td.RateTypeCode, &autoSaveNew)
-	// if err != nil {
-	// 	return err
-	// }
-	// if autoSaveNew.Valid {
-	// 	td.AutoSaveNew = &autoSaveNew.Bool
-	// }
-	// return nil
 	return rows.Scan(&td.StartDate, &td.EndDate, &td.Duration, &td.InterestRate, &td.RateTypeCode, &td.AutoSaveNew)
 }
 
@@ -136,28 +127,23 @@ func (s *timeDepositService) GetTd(dep *Deposit) (td *TimeDeposit, err error) {
 func (s *timeDepositService) Query(form *QueryForm) (tds []*TimeDeposit, err error) {
 	sb := &db.SqlBuilder{}
 
-	sb.AddTable("Deposit d").AddTable("TimeDeposit td").SetColumns(
+	// <td>開始日期</td>
+	// <td>結束日期</td>
+	// <td>年利率</td>
+	// <td>類型</td>
+	// <td>自動轉存</td>
+	// <td>年收入</td>
+	sb.AddTable("Deposit d left join TimeDeposit td on d.id=td.depId").SetColumns(
 		[]string{"d.memberId", "d.bankId", "d.amount", "d.coinType",
-			"td.startDate", "td.endDate", "interestRate", "rateTypeCode", "autoSaveNew"},
+			"td.startDate", "td.endDate", "td.duration", "interestRate", "rateTypeCode", "autoSaveNew"},
 	)
 	var loadRows = func(td *TimeDeposit, rows *sql.Rows) error {
-		// var autoSaveNew sql.NullBool
-		// err := rows.Scan(&td.MemberId, &td.BankId, &td.Amount, &td.CoinTypeCode,
-		// 	&td.StartDate, &td.EndDate, &td.InterestRate, &td.RateTypeCode, &autoSaveNew)
-		// if err != nil {
-		// 	return err
-		// }
-		// if autoSaveNew.Valid {
-		// 	td.AutoSaveNew = &autoSaveNew.Bool
-		// }
-		// return nil
 		return rows.Scan(&td.MemberId, &td.BankId, &td.Amount, &td.CoinTypeCode,
-			td.StartDate, td.Duration, td.InterestRate, td.RateTypeCode, td.AutoSaveNew)
+			&td.StartDate, &td.EndDate, &td.Duration, &td.InterestRate, &td.RateTypeCode, &td.AutoSaveNew)
 	}
 
-	sb.AddCondition("td.depId=d.id", nil)
 	form.SetToSqlBuilder(sb, "d")
-	sb.AddOrderBy("td.endDate DESC")
+	sb.AddOrderBy("td.endDate ASC")
 	sql := sb.BuildSql()
 
 	rows, err := db.DB.Query(sql, sb.Variables...)

@@ -11,11 +11,16 @@ type Member struct {
 	Id   int
 	Name string
 
-	TotalTWD float64
+	AllTotalTWD  float64
+	TimeTotalTWD float64
 }
 
-func (m *Member) TotalTWDString() string {
-	return fmt.Sprintf("%.2f", m.TotalTWD)
+func (m *Member) AllTotalTWDString() string {
+	return fmt.Sprintf("%.2f", m.AllTotalTWD)
+}
+
+func (m *Member) TimeTotalTWDString() string {
+	return fmt.Sprintf("%.2f", m.TimeTotalTWD)
 }
 
 var Members []*Member

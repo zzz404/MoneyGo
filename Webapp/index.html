@@ -2,15 +2,24 @@
   <body>
     <a href="/accountList">帳號維護</a>
     <hr />
-    <a href="/depositList?memberId={{.Id}}">存單維護</a> ({{.totalTWDString}})
+    <a href="/depositList">存單維護</a> ({{.allTotalTWDString}})
     <ul>
     {{range .members}}
       <li>
         <a href="/depositList?memberId={{.Id}}">{{.Name}}</a>
-        ({{.TotalTWDString}})
+        ({{.AllTotalTWDString}})
       </li>
     {{end}}
     </ul>
     <hr />
+    <a href="/timeDepositList">定存瀏覽</a> ({{.timeTotalTWDString}})
+    <ul>
+    {{range .members}}
+      <li>
+        <a href="/timeDepositList?memberId={{.Id}}">{{.Name}}</a>
+        ({{.TimeTotalTWDString}})
+      </li>
+    {{end}}
+    </ul>
   </body>
 </html>

@@ -51,6 +51,15 @@ func (td *TimeDeposit) StartDateString() string {
 	return utils.FormatDate(td.StartDate)
 }
 
+func (td *TimeDeposit) DurationString() string {
+	duration := td.Duration
+	if duration == nil {
+		return ""
+	} else {
+		return strconv.Itoa(*duration)
+	}
+}
+
 func (td *TimeDeposit) EndDateString() string {
 	return utils.FormatDate(td.EndDate)
 }
@@ -86,7 +95,7 @@ func (td *TimeDeposit) EspectedYearIncome() *float64 {
 	if td.InterestRate == nil {
 		return nil
 	} else {
-		income := td.TwAmount() * (*td.InterestRate)
+		income := td.TwAmount() * (*td.InterestRate) / 100
 		return &income
 	}
 }
@@ -96,15 +105,6 @@ func (td *TimeDeposit) EspectedYearIncomeString() string {
 	if income == nil {
 		return ""
 	} else {
-		return fmt.Sprintf("%g", income) + "%"
-	}
-}
-
-func (td *TimeDeposit) DurationString() string {
-	duration := td.Duration
-	if duration == nil {
-		return ""
-	} else {
-		return strconv.Itoa(*duration)
+		return fmt.Sprintf("%.2f", *income)
 	}
 }

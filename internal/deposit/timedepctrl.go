@@ -20,10 +20,16 @@ func (c *timeDepositController) List(r *ut.HttpRequest, w *ut.HttpResponse) {
 	if w.ResponseForError(err) {
 		return
 	}
+	form.TypeCode = TimeDepositType.Code
 
 	tds, err := TimeDepService.Query(form)
 	if w.ResponseForError(err) {
 		return
+	}
+
+	totalTWD := 0.0
+	for _, d := range tds {
+		totalTWD += d.TwAmount()
 	}
 
 	totalYearIncome := 0.0
@@ -46,6 +52,7 @@ func (c *timeDepositController) List(r *ut.HttpRequest, w *ut.HttpResponse) {
 		"tds":             tds,
 		"count":           len(tds),
 		"totalYearIncome": fmt.Sprintf("%.2f", totalYearIncome),
+		"totalTWD":        fmt.Sprintf("%.2f", totalTWD),
 	})
 	w.ResponseForError(err)
 }
