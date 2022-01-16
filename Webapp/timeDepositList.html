@@ -48,6 +48,7 @@
         <td>銀行</td>
         <td>金額</td>
         <td>幣別</td>
+        <td>折合台幣</td>
         <td>開始日期</td>
         <td>月數</td>
         <td>結束日期</td>
@@ -64,11 +65,14 @@
         <td>
           {{.Bank.Name}}
         </td>
-        <td>
+        <td align="right">
           {{.AmountString}}
         </td>
         <td>
           {{.CoinType.Name}}
+        </td>
+        <td align="right">
+          {{.TwAmountString}}
         </td>
         <td>
           {{.StartDateString}}
@@ -88,7 +92,7 @@
         <td>
           {{.AutoSaveNewString}}
         </td>
-        <td>
+        <td align="right">
           {{.EspectedYearIncomeString}}
         </td>
       </tr>

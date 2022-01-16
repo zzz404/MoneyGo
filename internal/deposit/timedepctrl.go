@@ -36,7 +36,7 @@ func (c *timeDepositController) List(r *ut.HttpRequest, w *ut.HttpResponse) {
 	for _, td := range tds {
 		income := td.EspectedYearIncome()
 		if income != nil {
-			totalYearIncome += *td.EspectedYearIncome()
+			totalYearIncome += *income
 		}
 	}
 

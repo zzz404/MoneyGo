@@ -105,6 +105,6 @@ func (td *TimeDeposit) EspectedYearIncomeString() string {
 	if income == nil {
 		return ""
 	} else {
-		return fmt.Sprintf("%.2f", *income)
+		return fmt.Sprintf("%.2f TWD", *income)
 	}
 }
