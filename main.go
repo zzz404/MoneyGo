@@ -43,15 +43,14 @@ func index(r *ut.HttpRequest, w *ut.HttpResponse) {
 		return
 	}
 	var members []*mb.Member
-	for _, member1 := range mb.Members {
-		member2 := member1
-		memberTotal, ok := m[member2.Id]
+	for _, member := range mb.Members {
+		memberTotal, ok := m[member.Id]
 		if ok {
-			member2.TotalTWD = memberTotal
+			member.TotalTWD = memberTotal
 		} else {
-			member2.TotalTWD = 0
+			member.TotalTWD = 0
 		}
-		members = append(members, member2)
+		members = append(members, member)
 	}
 
 	err = tpl.Execute(w, map[string]interface{}{
