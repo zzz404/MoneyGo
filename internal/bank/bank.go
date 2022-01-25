@@ -75,7 +75,7 @@ func loadBankAccounts() {
 		panic(err)
 	}
 	defer func() {
-		utils.Must(rows.Close())
+		utils.Must(err, rows.Close())
 	}()
 
 	for rows.Next() {

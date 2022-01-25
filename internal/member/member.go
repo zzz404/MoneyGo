@@ -31,14 +31,14 @@ func init() {
 		panic(err)
 	}
 	defer func() {
-		utils.Must(rows.Close())
+		utils.Must(err, rows.Close())
 	}()
 
 	for rows.Next() {
 		member := Member{}
 		err = rows.Scan(&member.Id, &member.Name)
 		if err != nil {
-			panic(err)
+			return
 		}
 		Members = append(Members, &member)
 	}
