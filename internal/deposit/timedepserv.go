@@ -38,6 +38,7 @@ func (s *timeDepositService) Add(td *TimeDeposit) (id int, err error) {
 		return
 	}
 
+	td.Id = id
 	err = s.add(td, tx)
 	return
 }
